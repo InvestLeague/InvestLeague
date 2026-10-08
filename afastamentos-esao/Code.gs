@@ -8,6 +8,9 @@
  * mesmo militar a partir de versões diferentes são recusados e o segundo
  * aparelho é avisado.
  * Aba "Historico": cada envio fica registrado (auditoria).
+ *
+ * Acesso: o link comum abre só o formulário. O painel (todas as respostas)
+ * exige a chave do gestor: URL/exec?v=painel&chave=<PAINEL_CHAVE>, criada por instalar().
  */
 
 var ABA = 'Respostas';
@@ -46,8 +49,20 @@ function aba_(nome, cab) {
   return sh;
 }
 
-/** Lê todas as respostas. */
-function listar() {
+/** Todas as respostas: somente para o painel, com a chave do gestor. */
+function listar(chave) {
+  var certa = PropertiesService.getScriptProperties().getProperty('PAINEL_CHAVE');
+  if (!certa || chave !== certa) throw new Error('Acesso ao painel negado.');
+  return listar_();
+}
+
+/** Resposta de um militar, para ele revisar e corrigir no formulário. */
+function carregar(id) {
+  var r = listar_().filter(function (x) { return x.id === id; })[0];
+  return r || null;
+}
+
+function listar_() {
   var sh = aba_(ABA, CAB);
   var n = sh.getLastRow();
   if (n < 2) return [];
@@ -106,7 +121,10 @@ function leitura_(rec) {
 function instalar() {
   aba_(ABA, CAB);
   aba_(ABA_HIST, ['quando', 'id', 'militar', 'rev', 'dados']);
-  var existe = listar().some(function (r) { return r.id === 'modesto'; });
+  var props = PropertiesService.getScriptProperties();
+  if (!props.getProperty('PAINEL_CHAVE')) props.setProperty('PAINEL_CHAVE', Utilities.getUuid().replace(/-/g, '').slice(0, 16));
+  Logger.log('Link do painel: <URL da implantação>?v=painel&chave=' + props.getProperty('PAINEL_CHAVE'));
+  var existe = listar_().some(function (r) { return r.id === 'modesto'; });
   if (!existe) {
     salvar(JSON.stringify({
       id: 'modesto', militar: 'Maj Modesto', dispensa: 'sem', temDeslig: true, deslig: '2027-01-24',

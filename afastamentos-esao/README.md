@@ -10,6 +10,12 @@ Um único arquivo (`index.html`) funciona em duas hospedagens:
 
 Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstração** e salva só no próprio aparelho.
 
+## Quem vê o quê
+
+- **Militares** abrem o link e veem **só o formulário**. Não aparecem o painel, os botões de troca de tela nem o status dos colegas. Cada um só lê a própria resposta.
+- **Maj Modesto** (dono do artifact, ou quem tiver a chave do painel no Apps Script) vê o formulário e o painel completo.
+- No artifact isso é garantido pelas regras da base: `respostas` só é lida pelo dono; cada conta grava e lê apenas `respostas/<id da conta>`. Nem quem tem permissão de Editor consegue ler as respostas dos outros.
+
 ## Como funciona
 
 - Cada militar tem **um registro próprio** (documento no artifact, linha na planilha). Envios simultâneos de militares diferentes nunca se sobrescrevem.
@@ -17,7 +23,8 @@ Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstra
 - As regras (dispensas de Natal/Ano-Novo, datas invertidas, campos incompletos, sobreposição, desligamento) estão em `validar()` no `index.html` e são recalculadas no painel a cada carga.
 - Respostas com conflito podem ser enviadas após confirmação e aparecem no painel como **Precisa corrigir**.
 - Quem não respondeu aparece como **Sem resposta** e nunca é contado como disponível. A partir da data de desligamento o militar sai do efetivo.
-- Link direto para o painel: acrescente `#painel` ao link (artifact) ou `?v=painel` (Apps Script).
+- Link direto para o painel: acrescente `#painel` ao link (artifact; só abre para o dono) ou `?v=painel&chave=<PAINEL_CHAVE>` (Apps Script).
+- No Apps Script não há login: quem escolher um nome no formulário consegue carregar a resposta daquele nome para corrigir. O painel e a lista completa exigem a chave.
 
 ## Publicar no Google Apps Script (link sem login)
 
@@ -25,8 +32,8 @@ Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstra
 2. Menu **Extensões › Apps Script**.
 3. No arquivo `Código.gs`, apague o conteúdo e cole o conteúdo de `Code.gs`.
 4. Clique em **+ › HTML**, nomeie `index` e cole o conteúdo de `index.html`.
-5. Selecione a função `instalar` e clique em **Executar** (autorize quando pedir). Isso cria as abas e lança os dados do Maj Modesto.
+5. Selecione a função `instalar` e clique em **Executar** (autorize quando pedir). Isso cria as abas, lança os dados do Maj Modesto e gera a chave do painel (aparece em **Registro de execução**; fica também em Configurações do projeto › Propriedades do script › `PAINEL_CHAVE`).
 6. **Implantar › Nova implantação › Tipo: App da Web**. Executar como: **Eu**. Quem pode acessar: **Qualquer pessoa** (ou "Qualquer pessoa com Conta do Google").
-7. Copie a URL que termina em `/exec` e envie aos militares. O painel fica em `URL/exec?v=painel`.
+7. Copie a URL que termina em `/exec` e envie aos militares (só formulário). O seu painel fica em `URL/exec?v=painel&chave=<PAINEL_CHAVE>`; não repasse esse link.
 
 Ao alterar o `index.html` depois, use **Implantar › Gerenciar implantações › Editar › Nova versão** para manter a mesma URL.

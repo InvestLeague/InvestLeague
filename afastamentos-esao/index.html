@@ -55,6 +55,7 @@
 }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { -webkit-text-size-adjust: 100%; }
 body { background: var(--bg); color: var(--ink); font: 15px/1.45 var(--f-body); margin: 0; }
 button, input, select { font: inherit; color: inherit; }
@@ -311,7 +312,7 @@ h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; lette
       <span class="eyebrow">EsAO · Curso de Infantaria</span>
       <h1>Levantamento de afastamentos</h1>
     </div>
-    <div class="views" role="group" aria-label="Escolher tela">
+    <div class="views" id="views" role="group" aria-label="Escolher tela" hidden>
       <button id="v-form" data-act="view" data-v="form" aria-pressed="true">Preencher</button>
       <button id="v-dash" data-act="view" data-v="dash" aria-pressed="false">Painel</button>
     </div>
@@ -453,7 +454,7 @@ const temConflito = iss => iss.some(i => i.tipo === "conflito" || i.tipo === "in
 
 /* ======================= estado ======================= */
 const S = {
-  view: "form",
+  view: "form", gestor: false, wantDash: false, docOf: {}, meu: null, trocaDe: null,
   respostas: {},          // id -> registro salvo
   ready: false,
   backend: null,
@@ -462,7 +463,7 @@ const S = {
   // painel
   dMonth: 1, dSel: "2026-12-23", dMode: "dia", rIni: null, rFim: null, fMil: "todos", fCats: new Set(CATS.map(c => c.k)), mapScope: "mes", filtersOpen: false
 };
-try { const h = (location.hash || "").replace("#", ""); if (h === "painel") S.view = "dash"; } catch (e) {}
+try { const h = (location.hash || "").replace("#", ""); if (h === "painel") S.wantDash = true; } catch (e) {}
 
 function novoRegistro(id) {
   return { id, militar: NOME[id], dispensa: null, temDeslig: null, deslig: null, periodos: [], rev: 0 };
@@ -472,58 +473,101 @@ function novoRegistro(id) {
 const conn = (cls, txt) => { const el = document.getElementById("conn"); el.className = "conn " + cls; el.querySelector("span").textContent = txt; };
 function banner(html, cls) { const b = document.getElementById("banner"); if (!html) { b.hidden = true; b.innerHTML = ""; return; } b.hidden = false; b.innerHTML = '<div class="' + (cls || "") + '">' + html + "</div>"; }
 
+/* Várias respostas do mesmo militar (ex.: enviada pela conta dele e corrigida pelo gestor): vale a mais recente. */
 function setRespostas(list) {
-  const m = {};
-  list.forEach(r => { if (r && NOME[r.id]) m[r.id] = r; });
-  S.respostas = m; S.ready = true;
+  const m = {}, docs = {};
+  list.forEach(r => {
+    if (!r || !NOME[r.id]) return;
+    if (!m[r.id] || (r.atualizadoEm || "") > (m[r.id].atualizadoEm || "")) { m[r.id] = r; docs[r.id] = r._doc || r.id; }
+  });
+  S.respostas = m; S.docOf = docs; S.ready = true;
   if (S.mid && S.draft && m[S.mid] && (m[S.mid].rev || 0) !== S.baseRev && !S.sending && !S.sent) {
     // Sem alterações locais: carrega a versão nova em silêncio. Com alterações: pergunta qual manter.
     if (JSON.stringify(S.draft) === S.loaded && !S.editing) pickMilitar(S.mid); else S.staleRemote = m[S.mid];
   }
   render();
 }
+/* Gestor vê painel e todas as respostas; militar vê só o formulário e a própria resposta. */
+function setRole(gestor) {
+  S.gestor = !!gestor;
+  document.getElementById("views").hidden = !S.gestor;
+  if (S.gestor && S.wantDash) S.view = "dash";
+  if (!S.gestor) S.view = "form";
+  render();
+}
+const PRIV = "Suas respostas ficam visíveis apenas para o Maj Modesto";
+const semDoc = r => { const o = clone(r); delete o._doc; return o; };
 
-/* Adaptador 1: base compartilhada do Claude (artifact db). Um documento por militar: envios simultâneos de pessoas diferentes nunca se sobrescrevem. */
-async function dbBackend(db) {
+/* Adaptador 1: base do Claude (artifact db). Regras de acesso: só o dono do artifact lê a coleção inteira;
+   cada militar lê e grava apenas o próprio documento respostas/<id da conta>. */
+async function dbBackend(db, user) {
   const col = db.collection("respostas");
-  let unsub = null;
-  const listen = () => {
-    unsub = col.onSnapshot(snap => {
-      conn("on", "Base compartilhada conectada · atualização em tempo real");
-      setRespostas(snap.docs.filter(d => d.exists).map(d => d.data()));
-    }, err => { conn("off", "Conexão interrompida. Recarregue a página."); setTimeout(listen, 3000); });
-  };
-  listen();
+  let gestor = false, uid = null;
+  try { gestor = user ? await user.isOwner() : false; } catch (e) {}
+  try { uid = user ? await user.id() : null; } catch (e) {}
+  setRole(gestor);
+  if (gestor) {
+    const listen = () => col.onSnapshot(snap => {
+      conn("on", "Painel do gestor · todas as respostas em tempo real");
+      setRespostas(snap.docs.filter(d => d.exists).map(d => ({ ...d.data(), _doc: d.id })));
+    }, () => { conn("off", "Conexão interrompida. Recarregue a página."); setTimeout(listen, 3000); });
+    listen();
+  } else if (uid) {
+    const listen = () => col.doc(uid).onSnapshot(snap => {
+      conn("on", "Conectado · " + PRIV);
+      S.meu = snap.exists ? snap.data() : null;
+      setRespostas(S.meu ? [{ ...S.meu, _doc: uid }] : []);
+    }, () => { conn("off", "Conexão interrompida. Recarregue a página."); setTimeout(listen, 3000); });
+    listen();
+  } else {
+    conn("off", "Conta não identificada");
+    banner("<b>Entre na sua conta claude.ai</b> e abra o link novamente para enviar sua resposta.", "b");
+    S.ready = true; render();
+  }
   return {
     kind: "db",
     async save(rec, expectedRev) {
-      const ref = col.doc(rec.id);
+      const ref = col.doc(gestor ? (S.docOf[rec.id] || rec.id) : uid);
       let cur;
       try { cur = await ref.get(); } catch (e) { if (e && e.code === "unavailable") { await new Promise(r => setTimeout(r, 600 + Math.random() * 600)); cur = await ref.get(); } else throw e; }
       const curRev = cur.exists ? (cur.data().rev || 0) : 0;
       if (curRev !== expectedRev) return { ok: false, conflict: true, current: cur.data() };
       const now = new Date().toISOString();
-      const body = { ...clone(rec), rev: curRev + 1, atualizadoEm: now, enviadoEm: cur.exists ? (cur.data().enviadoEm || now) : now };
+      const body = { ...semDoc(rec), rev: curRev + 1, atualizadoEm: now, enviadoEm: cur.exists ? (cur.data().enviadoEm || now) : now };
       await ref.set(body);
       return { ok: true, registro: body };
     }
   };
 }
 
-/* Adaptador 2: Google Apps Script + Planilha (quando a página é servida pelo Apps Script). */
-function gasBackend() {
+/* Adaptador 2: Google Apps Script + Planilha. Painel só com ?v=painel&chave=<chave do gestor>. */
+async function gasBackend() {
   const call = (fn, ...args) => new Promise((res, rej) => google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args));
+  const loc = await new Promise(res => { try { google.script.url.getLocation(res); } catch (e) { res({ parameter: {} }); } });
+  const chave = (loc.parameter && loc.parameter.chave) || "";
+  if (loc.parameter && loc.parameter.v === "painel") S.wantDash = true;
+  let gestor = false;
   const load = async () => {
-    try { const list = await call("listar"); conn("on", "Planilha conectada · atualiza a cada 30 s"); setRespostas(list || []); }
-    catch (e) { conn("off", "Não foi possível ler a planilha: " + (e && e.message || e)); }
+    try { setRespostas((await call("listar", chave)) || []); conn("on", "Painel do gestor · planilha atualizada a cada 30 s"); return true; }
+    catch (e) { return false; }
   };
-  load(); setInterval(() => { if (!document.hidden) load(); }, 30000);
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+  if (chave && await load()) {
+    gestor = true; setRole(true);
+    setInterval(() => { if (!document.hidden) load(); }, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+  } else {
+    if (chave) banner("<b>Chave do painel inválida.</b> Abrindo só o formulário.", "w");
+    setRole(false); conn("on", "Conectado · " + PRIV); S.ready = true; render();
+  }
   return {
     kind: "gas",
+    async loadOne(id) {
+      if (gestor) return;
+      try { const r = await call("carregar", id); if (r) S.respostas[id] = r; else delete S.respostas[id]; } catch (e) {}
+    },
     async save(rec, expectedRev) {
-      const r = await call("salvar", JSON.stringify(rec), expectedRev);
-      if (r && r.ok) { S.respostas[rec.id] = r.registro; }
+      const r = await call("salvar", JSON.stringify(semDoc(rec)), expectedRev);
+      if (r && r.ok) S.respostas[rec.id] = r.registro;
       return r;
     }
   };
@@ -534,6 +578,7 @@ function localBackend() {
   const KEY = "afast-esao-demo";
   const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } };
   const write = o => { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
+  setRole(true);
   setRespostas(Object.values(read()));
   window.addEventListener("storage", e => { if (e.key === KEY) setRespostas(Object.values(read())); });
   conn("", "Modo demonstração · os dados ficam só neste aparelho");
@@ -544,7 +589,7 @@ function localBackend() {
       const all = read(); const cur = all[rec.id]; const curRev = cur ? cur.rev || 0 : 0;
       if (curRev !== expectedRev) return { ok: false, conflict: true, current: cur };
       const now = new Date().toISOString();
-      const body = { ...clone(rec), rev: curRev + 1, atualizadoEm: now, enviadoEm: cur ? (cur.enviadoEm || now) : now };
+      const body = { ...semDoc(rec), rev: curRev + 1, atualizadoEm: now, enviadoEm: cur ? (cur.enviadoEm || now) : now };
       all[rec.id] = body; write(all); setRespostas(Object.values(all));
       return { ok: true, registro: body };
     }
@@ -552,28 +597,22 @@ function localBackend() {
 }
 
 async function initBackend() {
-  if (window.google && google.script && google.script.run) {
-    S.backend = gasBackend();
-    try { google.script.url.getLocation(l => { if ((l.parameter && l.parameter.v === "painel") || l.hash === "painel") { S.view = "dash"; render(); } }); } catch (e) {}
-    return;
-  }
+  if (window.google && google.script && google.script.run) { S.backend = await gasBackend(); return; }
   if (window.claude && typeof window.claude.use === "function") {
-    let db = null;
-    try { db = await window.claude.use("db"); } catch (e) { db = null; }
-    if (db) { S.backend = await dbBackend(db); checkWrite(); return; }
-    conn("off", "Base compartilhada indisponível");
-    banner("<b>Não foi possível abrir a base compartilhada.</b> Entre na sua conta claude.ai e abra o link novamente. Sem a base, a resposta não pode ser enviada.", "b");
+    let db = null, user = null;
+    try { [db, user] = await Promise.all([window.claude.use("db"), window.claude.use("user")]); } catch (e) {}
+    if (db) { S.backend = await dbBackend(db, user); checkWrite(user); return; }
+    setRole(false);
+    conn("off", "Base indisponível");
+    banner("<b>Não foi possível abrir a base de respostas.</b> Entre na sua conta claude.ai e abra o link novamente. Sem a base, a resposta não pode ser enviada.", "b");
     S.ready = true; S.backend = null; render(); return;
   }
   S.backend = localBackend();
 }
-async function checkWrite() {
+async function checkWrite(user) {
   try {
-    const user = await window.claude.use("user");
-    if (user && typeof user.can === "function") {
-      const can = await user.can("data.write");
-      if (can === false) banner("<b>Seu acesso é somente leitura.</b> Você consegue ver o painel, mas não enviar respostas. Peça ao Maj Modesto para compartilhar o link com você com permissão de edição.", "w");
-    }
+    if (user && typeof user.can === "function" && await user.can("data.write") === false)
+      banner("<b>Seu acesso é somente leitura.</b> Você não consegue enviar respostas. Peça ao Maj Modesto para compartilhar o link com você com permissão de edição.", "w");
   } catch (e) {}
 }
 
@@ -619,11 +658,13 @@ function issuesHtml(list, withGo) {
     "</div></div>").join("") + "</div>";
 }
 function step0() {
-  return '<h2 class="q">Quem é você?</h2><p class="hint">Escolha seu nome. Se já respondeu, sua resposta é carregada para você revisar e corrigir.</p>' +
+  return '<h2 class="q">Quem é você?</h2><p class="hint">Escolha seu nome. Se já respondeu, sua resposta é carregada para você revisar e corrigir.' + (S.gestor ? "" : " " + PRIV + ".") + '</p>' +
     '<div class="names">' + MILITARES.map(m => {
       const st = statusDe(m.id);
-      return '<button class="name-btn" data-act="pick" data-id="' + m.id + '" aria-pressed="' + (S.mid === m.id) + '"><strong>' + esc(m.nome) + "</strong>" + (S.ready ? pill(st) : "") + "</button>";
+      const tag = S.gestor ? (S.ready ? pill(st) : "") : (S.respostas[m.id] ? '<span class="pill ok">✓ Sua resposta</span>' : "");
+      return '<button class="name-btn" data-act="pick" data-id="' + m.id + '" aria-pressed="' + (S.mid === m.id) + '"><strong>' + esc(m.nome) + "</strong>" + tag + "</button>";
     }).join("") + "</div>" +
+    (S.trocaDe && S.mid ? '<div class="issue aviso" style="margin-top:14px"><span class="ic">!</span><div>Esta conta já enviou a resposta de <b>' + esc(NOME[S.trocaDe]) + "</b>. Se enviar como " + esc(NOME[S.mid]) + ", aquela resposta será substituída.</div></div>" : "") +
     (S.mid && S.respostas[S.mid] ? '<div class="issue okay" style="margin-top:14px"><span class="ic">✓</span><div>Resposta de <b>' + esc(NOME[S.mid]) + "</b> enviada em " + esc(fmtHora(S.respostas[S.mid].atualizadoEm)) + " está carregada. Avance para revisar e corrigir o que precisar.</div></div>" : "");
 }
 function perCard(p, i) {
@@ -707,7 +748,7 @@ function step4() {
   return '<h2 class="q">Confira e envie</h2><p class="hint">' + esc(NOME[S.mid]) + " · " + (S.baseRev ? "você está corrigindo uma resposta já enviada." : "primeiro envio.") + "</p>" +
     '<div class="card">' + personStrip(r) + resumoLista(r) + "</div>" +
     (ok ? '<div class="issues"><div class="issue okay"><span class="ic">✓</span><div><b>Tudo certo.</b> Nenhum conflito encontrado.</div></div></div>' : issuesHtml(iss, true)) +
-    (S.confirmConflito ? '<div class="issue conflito" style="margin-top:12px"><span class="ic">!</span><div>Há conflitos não resolvidos. Se enviar assim, sua resposta aparecerá no painel como <b>Precisa corrigir</b>. Toque de novo em “Enviar mesmo assim” para confirmar.</div></div>' : "");
+    (S.confirmConflito ? '<div class="issue conflito" style="margin-top:12px"><span class="ic">!</span><div>Há conflitos não resolvidos. Se enviar assim, sua resposta ficará marcada como <b>Precisa corrigir</b>' + (S.gestor ? " no painel" : " para o Maj Modesto") + '. Toque de novo em “Enviar mesmo assim” para confirmar.</div></div>' : "");
 }
 function sendButton() {
   const iss = validar(S.draft);
@@ -722,7 +763,7 @@ function renderSent() {
   return '<div class="form-wrap done-screen"><p class="big-ok">' + (st.k === "ok" ? "Resposta registrada" : "Resposta registrada com pendências") + '</p><p class="hint" style="margin-top:8px">' + esc(NOME[S.sent]) + " · " + esc(fmtHora(r.atualizadoEm)) + ". Para corrigir depois, abra o mesmo link e escolha seu nome.</p>" +
     '<div class="card">' + personStrip(r) + resumoLista(r) + "</div>" +
     (st.k === "bad" ? issuesHtml(st.iss.filter(i => i.tipo !== "aviso"), false) : "") +
-    '<div style="display:grid;gap:8px;margin-top:16px"><button class="btn big pri" data-act="reedit">Corrigir esta resposta</button><button class="btn big" data-act="restart">Preencher para outro militar</button></div></div>';
+    '<div style="display:grid;gap:8px;margin-top:16px"><button class="btn big pri" data-act="reedit">Corrigir esta resposta</button>' + (S.gestor ? '<button class="btn big" data-act="restart">Preencher para outro militar</button>' : "") + '</div></div>';
 }
 
 /* editor de período */
@@ -966,6 +1007,9 @@ function pickMilitar(id) {
   const r = S.respostas[id];
   S.draft = r ? clone(r) : novoRegistro(id);
   S.baseRev = r ? (r.rev || 0) : 0;
+  // Militar: a conta tem um único documento; trocar de nome substitui a resposta anterior desta conta.
+  S.trocaDe = null;
+  if (!S.gestor && S.meu && S.meu.id !== id) { S.baseRev = S.meu.rev || 0; S.trocaDe = S.meu.id; }
   S.loaded = JSON.stringify(S.draft);
 }
 function scrollTop() { try { window.scrollTo({ top: 0 }); } catch (e) {} }
@@ -995,8 +1039,9 @@ document.addEventListener("click", ev => {
   const a = t.dataset.act, d = t.dataset;
   const e = S.editing;
   switch (a) {
-    case "view": S.view = d.v; try { history.replaceState(null, "", d.v === "dash" ? "#painel" : "#"); } catch (x) {} render(); scrollTop(); return;
-    case "pick": { const had = !!S.respostas[d.id]; pickMilitar(d.id); S.step = had ? 4 : 1; render(); scrollTop(); if (had) toast("Sua resposta foi carregada. Revise e corrija o que precisar."); return; }
+    case "view": if (!S.gestor) return; S.view = d.v; try { history.replaceState(null, "", d.v === "dash" ? "#painel" : "#"); } catch (x) {} render(); scrollTop(); return;
+    case "pick": if (S.backend && S.backend.loadOne) { const id = d.id; S.backend.loadOne(id).then(() => { const had = !!S.respostas[id]; pickMilitar(id); S.step = had ? 4 : 1; render(); scrollTop(); if (had) toast("Sua resposta foi carregada. Revise e corrija o que precisar."); }); return; }
+    { const had = !!S.respostas[d.id]; pickMilitar(d.id); S.step = had ? 4 : 1; render(); scrollTop(); if (had) toast("Sua resposta foi carregada. Revise e corrija o que precisar."); return; }
     case "step": if (S.mid) { S.step = +d.i; S.editing = null; S.confirmConflito = false; render(); scrollTop(); } return;
     case "next": if (S.mid) { S.step = Math.min(4, S.step + 1); S.confirmConflito = false; if (S.step === 3 && S.draft.deslig) S.pickMonth = MESES.findIndex(M => +S.draft.deslig.slice(5, 7) - 1 === M.m); render(); scrollTop(); } return;
     case "prev": S.step = Math.max(0, S.step - 1); S.confirmConflito = false; render(); scrollTop(); return;
@@ -1047,7 +1092,7 @@ document.addEventListener("click", ev => {
     case "mscope": S.mapScope = d.v; render(); return;
     case "who": whoModal(d.id); return;
     case "mclose": document.getElementById("layer").innerHTML = ""; return;
-    case "openfor": document.getElementById("layer").innerHTML = ""; S.view = "form"; S.sent = null; S.editing = null; pickMilitar(d.id); S.step = S.respostas[d.id] ? 4 : 1; render(); scrollTop(); return;
+    case "openfor": if (!S.gestor) return; document.getElementById("layer").innerHTML = ""; S.view = "form"; S.sent = null; S.editing = null; pickMilitar(d.id); S.step = S.respostas[d.id] ? 4 : 1; render(); scrollTop(); return;
   }
 });
 document.addEventListener("toggle", ev => { if (ev.target.id === "filtros") S.filtersOpen = ev.target.open; }, true);
