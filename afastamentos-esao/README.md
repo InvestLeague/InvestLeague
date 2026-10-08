@@ -6,8 +6,7 @@ Um único arquivo (`index.html`) funciona em duas hospedagens:
 | Hospedagem | Base de dados | Quem consegue responder |
 |---|---|---|
 | **Artifact do Claude** (já publicado) | Base compartilhada do artifact, atualizada em tempo real | Quem tiver conta claude.ai e receber o link com permissão de edição |
-| **`formulario.html`** (sem login) | Nenhuma: gera uma mensagem com código que o militar envia ao Maj Modesto (WhatsApp/e-mail); o gestor cola no painel em "Respostas recebidas por mensagem" | Qualquer pessoa que consiga abrir a página |
-| **Google Apps Script** (opcional) | Planilha Google, com histórico de envios | Qualquer pessoa com o link, sem login |
+| **Planilha Google + Apps Script** (recomendado para quem não tem Claude) | Planilha Google, com histórico de envios | Qualquer pessoa com o link, sem login |
 
 Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstração** e salva só no próprio aparelho.
 
@@ -16,13 +15,6 @@ Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstra
 - **Militares** abrem o link e veem **só o formulário**. Não aparecem o painel, os botões de troca de tela nem o status dos colegas. Cada um só lê a própria resposta.
 - **Maj Modesto** (dono do artifact, ou quem tiver a chave do painel no Apps Script) vê o formulário e o painel completo.
 - No artifact isso é garantido pelas regras da base: `respostas` só é lida pelo dono; cada conta grava e lê apenas `respostas/<id da conta>`. Nem quem tem permissão de Editor consegue ler as respostas dos outros.
-
-## Formulário sem login (`formulario.html`)
-
-- Gerado a partir do `index.html` com `node gerar-formulario.js` (muda só `AVULSO = true` e o título). Depois de alterar o `index.html`, gere de novo.
-- Arquivo único, sem servidor: pode ser publicado como artifact com link público, hospedado em qualquer site estático (GitHub Pages, Google Sites) ou enviado como arquivo.
-- No final, o militar toca em **Enviar pelo WhatsApp** (ou copia a mensagem). A mensagem traz o resumo legível e um código `AFX1.…`.
-- A resposta também fica guardada no aparelho do militar; para corrigir, ele reabre o formulário, ajusta e envia nova mensagem. No painel vale a mais recente; mensagens antigas coladas de novo são ignoradas.
 
 ## Como funciona
 
@@ -34,14 +26,16 @@ Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstra
 - Link direto para o painel: acrescente `#painel` ao link (artifact; só abre para o dono) ou `?v=painel&chave=<PAINEL_CHAVE>` (Apps Script).
 - No Apps Script não há login: quem escolher um nome no formulário consegue carregar a resposta daquele nome para corrigir. O painel e a lista completa exigem a chave.
 
-## Publicar no Google Apps Script (link sem login)
+## Publicar na Planilha Google (link sem login)
 
-1. Crie uma Planilha Google nova (ex.: "Afastamentos Inf EsAO").
-2. Menu **Extensões › Apps Script**.
-3. No arquivo `Código.gs`, apague o conteúdo e cole o conteúdo de `Code.gs`.
-4. Clique em **+ › HTML**, nomeie `index` e cole o conteúdo de `index.html`.
-5. Selecione a função `instalar` e clique em **Executar** (autorize quando pedir). Isso cria as abas, lança os dados do Maj Modesto e gera a chave do painel (aparece em **Registro de execução**; fica também em Configurações do projeto › Propriedades do script › `PAINEL_CHAVE`).
-6. **Implantar › Nova implantação › Tipo: App da Web**. Executar como: **Eu**. Quem pode acessar: **Qualquer pessoa** (ou "Qualquer pessoa com Conta do Google").
-7. Copie a URL que termina em `/exec` e envie aos militares (só formulário). O seu painel fica em `URL/exec?v=painel&chave=<PAINEL_CHAVE>`; não repasse esse link.
+Tudo vai num arquivo só: `Codigo.gs` (gerado com `node gerar-apps-script.js` a partir de `Code.gs` + `index.html`).
 
-Ao alterar o `index.html` depois, use **Implantar › Gerenciar implantações › Editar › Nova versão** para manter a mesma URL.
+1. Abra **sheets.new** e dê um nome à planilha (ex.: "Afastamentos Inf EsAO").
+2. Menu **Extensões › Apps Script**. Apague o conteúdo do editor, cole o conteúdo inteiro de `Codigo.gs` e salve (Ctrl+S).
+3. **Implantar › Nova implantação**. Na engrenagem, escolha **App da Web**. Executar como: **Eu**. Quem pode acessar: **Qualquer pessoa**. Clique em **Implantar** e autorize (em "O Google não verificou este app", clique em **Avançado › Acessar**; o app é seu).
+4. Volte à planilha e recarregue a página. No menu **Afastamentos › Ver links do formulário e do painel** aparecem:
+   - o link do **formulário**, para enviar aos militares (sem login, grava direto na planilha);
+   - o link do **seu painel**, com a chave (não repasse).
+
+No primeiro acesso, o sistema cria as abas `Respostas` e `Historico`, gera a chave do painel e lança os dados do Maj Modesto.
+Ao alterar algo depois, cole o novo `Codigo.gs` e use **Implantar › Gerenciar implantações › Editar › Nova versão** para manter o mesmo link.

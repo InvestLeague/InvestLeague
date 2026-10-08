@@ -325,8 +325,6 @@ h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; lette
 
 <script>
 "use strict";
-/* AVULSO = true gera o formulário sem login (formulario.html): sem base de dados; a resposta vira uma mensagem com código que o gestor importa no painel. */
-const AVULSO = false;
 /* ======================= dados fixos ======================= */
 const MILITARES = [
   ["barroso-magno", "Maj Barroso Magno"], ["modesto", "Maj Modesto"], ["andrews", "Maj Andrews"],
@@ -456,7 +454,6 @@ const temConflito = iss => iss.some(i => i.tipo === "conflito" || i.tipo === "in
 
 /* ======================= estado ======================= */
 const S = {
-  imp: { txt: "", itens: null, salvando: false },
   view: "form", gestor: false, wantDash: false, docOf: {}, meu: null, trocaDe: null,
   respostas: {},          // id -> registro salvo
   ready: false,
@@ -599,60 +596,7 @@ function localBackend() {
   };
 }
 
-/* ---------- mensagem com código (formulário sem login → painel) ---------- */
-const COD = "AFX1.";
-function codificar(rec) {
-  const c = { v: 1, id: rec.id, d: rec.dispensa, t: rec.temDeslig, g: rec.deslig || null, ts: rec.atualizadoEm,
-    p: (rec.periodos || []).map(p => [p.cat, p.ini, p.fim, p.obs || ""]) };
-  return COD + btoa(unescape(encodeURIComponent(JSON.stringify(c)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-const DATA_RE = /^\d{4}-\d{2}-\d{2}$/;
-function decodificar(code) {
-  try {
-    const b = code.slice(COD.length).replace(/-/g, "+").replace(/_/g, "/");
-    const c = JSON.parse(decodeURIComponent(escape(atob(b + "===".slice((b.length + 3) % 4)))));
-    if (!c || c.v !== 1 || !NOME[c.id] || !Array.isArray(c.p) || c.p.length > 30) return null;
-    if (c.d !== null && !["natal", "anonovo", "sem"].includes(c.d)) return null;
-    const periodos = c.p.map((x, i) => {
-      if (!Array.isArray(x) || !CAT[x[0]] || CAT[x[0]].fixa || !DATA_RE.test(x[1]) || !DATA_RE.test(x[2])) throw 0;
-      const p = { id: "m" + i, cat: x[0], ini: x[1], fim: x[2] };
-      if (typeof x[3] === "string" && x[3].trim()) p.obs = x[3].trim().slice(0, 120);
-      return p;
-    });
-    return { id: c.id, militar: NOME[c.id], dispensa: c.d, temDeslig: c.t === true ? true : c.t === false ? false : null,
-      deslig: c.t === true && DATA_RE.test(c.g || "") ? c.g : null, periodos, geradoEm: typeof c.ts === "string" ? c.ts : "" };
-  } catch (e) { return null; }
-}
-function mensagem(rec) {
-  const disp = rec.dispensa === "sem" ? "Sem dispensa" : rec.dispensa ? DISP[rec.dispensa].n + " (" + intTxt(DISP[rec.dispensa]) + ")" : "não escolhida";
-  const ps = (rec.periodos || []).filter(valido).map(p => "• " + CAT[p.cat].n + ": " + f3(p.ini) + " a " + f3(p.fim) + (p.obs ? " (" + p.obs + ")" : ""));
-  return ["LEVANTAMENTO DE AFASTAMENTOS · Cur Inf EsAO", "Militar: " + NOME[rec.id], "Dispensa de fim de ano: " + disp,
-    "Afastamentos:" + (ps.length ? "\n" + ps.join("\n") : " nenhum"), "Desligamento: " + (rec.temDeslig && rec.deslig ? f3(rec.deslig) : "não"),
-    "Gerado em " + fmtHora(rec.atualizadoEm), "", "Código (não alterar):", codificar(rec)].join("\n");
-}
-
-/* Adaptador 4: formulário sem login. Guarda as respostas só neste aparelho (para corrigir depois) e gera a mensagem. */
-function avulsoBackend() {
-  const KEY = "afast-esao-avulso";
-  const read = () => { try { return JSON.parse(localStorage.getItem(KEY) || "{}"); } catch (e) { return {}; } };
-  const write = o => { try { localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) {} };
-  setRole(false);
-  setRespostas(Object.values(read()));
-  conn("on", "Sem login · no final, envie a mensagem gerada ao Maj Modesto");
-  return {
-    kind: "avulso",
-    async save(rec, expectedRev) {
-      const all = read(); const cur = all[rec.id];
-      const now = new Date().toISOString();
-      const body = { ...semDoc(rec), rev: (cur ? cur.rev || 0 : 0) + 1, atualizadoEm: now, enviadoEm: cur ? (cur.enviadoEm || now) : now };
-      all[rec.id] = body; write(all); setRespostas(Object.values(all));
-      return { ok: true, registro: body };
-    }
-  };
-}
-
 async function initBackend() {
-  if (AVULSO) { S.backend = avulsoBackend(); return; }
   if (window.google && google.script && google.script.run) { S.backend = await gasBackend(); return; }
   if (window.claude && typeof window.claude.use === "function") {
     let db = null, user = null;
@@ -717,7 +661,7 @@ function step0() {
   return '<h2 class="q">Quem é você?</h2><p class="hint">Escolha seu nome. Se já respondeu, sua resposta é carregada para você revisar e corrigir.' + (S.gestor ? "" : " " + PRIV + ".") + '</p>' +
     '<div class="names">' + MILITARES.map(m => {
       const st = statusDe(m.id);
-      const tag = S.gestor ? (S.ready ? pill(st) : "") : (S.respostas[m.id] ? '<span class="pill ok">✓ ' + (AVULSO ? "Enviada deste aparelho" : "Sua resposta") + "</span>" : "");
+      const tag = S.gestor ? (S.ready ? pill(st) : "") : (S.respostas[m.id] ? '<span class="pill ok">✓ Sua resposta</span>' : "");
       return '<button class="name-btn" data-act="pick" data-id="' + m.id + '" aria-pressed="' + (S.mid === m.id) + '"><strong>' + esc(m.nome) + "</strong>" + tag + "</button>";
     }).join("") + "</div>" +
     (S.trocaDe && S.mid ? '<div class="issue aviso" style="margin-top:14px"><span class="ic">!</span><div>Esta conta já enviou a resposta de <b>' + esc(NOME[S.trocaDe]) + "</b>. Se enviar como " + esc(NOME[S.mid]) + ", aquela resposta será substituída.</div></div>" : "") +
@@ -804,29 +748,18 @@ function step4() {
   return '<h2 class="q">Confira e envie</h2><p class="hint">' + esc(NOME[S.mid]) + " · " + (S.baseRev ? "você está corrigindo uma resposta já enviada." : "primeiro envio.") + "</p>" +
     '<div class="card">' + personStrip(r) + resumoLista(r) + "</div>" +
     (ok ? '<div class="issues"><div class="issue okay"><span class="ic">✓</span><div><b>Tudo certo.</b> Nenhum conflito encontrado.</div></div></div>' : issuesHtml(iss, true)) +
-    (S.confirmConflito ? '<div class="issue conflito" style="margin-top:12px"><span class="ic">!</span><div>Há conflitos não resolvidos. Se enviar assim, sua resposta ficará marcada como <b>Precisa corrigir</b>' + (S.gestor ? " no painel" : " para o Maj Modesto") + '. Toque de novo em “' + (AVULSO ? "Gerar mesmo assim" : "Enviar mesmo assim") + '” para confirmar.</div></div>' : "");
+    (S.confirmConflito ? '<div class="issue conflito" style="margin-top:12px"><span class="ic">!</span><div>Há conflitos não resolvidos. Se enviar assim, sua resposta ficará marcada como <b>Precisa corrigir</b>' + (S.gestor ? " no painel" : " para o Maj Modesto") + '. Toque de novo em “Enviar mesmo assim” para confirmar.</div></div>' : "");
 }
 function sendButton() {
   const iss = validar(S.draft);
   if (!S.backend) return '<button class="btn pri" disabled>Base indisponível</button>';
   if (S.sending) return '<button class="btn pri" disabled>Enviando…</button>';
   if (bloqueia(iss)) return '<button class="btn pri" disabled>Corrija os itens acima</button>';
-  if (temConflito(iss)) return '<button class="btn pri" data-act="send" style="background:var(--bad);border-color:var(--bad)">' + (AVULSO ? "Gerar mesmo assim" : "Enviar mesmo assim") + "</button>";
-  return '<button class="btn pri" data-act="send">' + (AVULSO ? "Gerar mensagem de envio" : S.baseRev ? "Enviar correção" : "Enviar resposta") + "</button>";
+  if (temConflito(iss)) return '<button class="btn pri" data-act="send" style="background:var(--bad);border-color:var(--bad)">Enviar mesmo assim</button>';
+  return '<button class="btn pri" data-act="send">' + (S.baseRev ? "Enviar correção" : "Enviar resposta") + "</button>";
 }
 function renderSent() {
   const r = S.respostas[S.sent] || S.draft, st = statusDe(S.sent);
-  if (AVULSO) {
-    const msg = mensagem(r);
-    return '<div class="form-wrap done-screen"><p class="big-ok">Falta só enviar</p><p class="hint" style="margin-top:8px">Mande a mensagem abaixo ao <b>Maj Modesto</b>. Sem esse envio, sua resposta não chega ao levantamento.</p>' +
-      '<div style="display:grid;gap:8px"><a class="btn big pri" style="text-align:center;text-decoration:none" href="https://wa.me/?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">Enviar pelo WhatsApp</a>' +
-      '<button class="btn big" data-act="copymsg">Copiar mensagem</button></div>' +
-      '<p class="hint" style="margin:10px 0 6px;font-size:13px">No WhatsApp, escolha a conversa com o Maj Modesto. Também pode copiar e enviar por e-mail ou outro aplicativo.</p>' +
-      '<textarea id="msgtxt" readonly rows="10" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface-2);font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;resize:vertical">' + esc(msg) + "</textarea>" +
-      (st.k === "bad" ? issuesHtml(st.iss.filter(i => i.tipo !== "aviso"), false) : "") +
-      '<p class="hint" style="margin-top:12px">Para corrigir depois, abra este mesmo formulário no mesmo aparelho, ajuste e envie a nova mensagem. Vale a mais recente.</p>' +
-      '<div style="display:grid;gap:8px;margin-top:8px"><button class="btn big" data-act="reedit">Corrigir esta resposta</button></div></div>';
-  }
   return '<div class="form-wrap done-screen"><p class="big-ok">' + (st.k === "ok" ? "Resposta registrada" : "Resposta registrada com pendências") + '</p><p class="hint" style="margin-top:8px">' + esc(NOME[S.sent]) + " · " + esc(fmtHora(r.atualizadoEm)) + ". Para corrigir depois, abra o mesmo link e escolha seu nome.</p>" +
     '<div class="card">' + personStrip(r) + resumoLista(r) + "</div>" +
     (st.k === "bad" ? issuesHtml(st.iss.filter(i => i.tipo !== "aviso"), false) : "") +
@@ -921,7 +854,7 @@ function renderDash() {
     '<div class="kpi ok"><a href="#status" class="kpi-a" style="color:inherit;text-decoration:none"><div class="v num">' + nOk + '</div><div class="l">✓ Respondidos sem pendência</div></a></div>' +
     '<div class="kpi bad"><a href="#status" style="color:inherit;text-decoration:none"><div class="v num">' + nBad + '</div><div class="l">! Precisam corrigir</div></a></div>' +
     '<div class="kpi pend"><a href="#status" style="color:inherit;text-decoration:none"><div class="v num">' + nPend + '</div><div class="l">○ Pendentes (sem resposta)</div></a></div></div>';
-  return '<div class="dash">' + kpis + renderFilters() + renderCalendar() + renderDetail() + renderMap() + renderStatus(st) + renderImport() + renderDates() + "</div>";
+  return '<div class="dash">' + kpis + renderFilters() + renderCalendar() + renderDetail() + renderMap() + renderStatus(st) + renderDates() + "</div>";
 }
 function renderFilters() {
   const resumo = (S.fMil === "todos" ? "todos os militares" : NOME[S.fMil]) + " · " + (filtroCatAtivo() ? S.fCats.size + " de " + CATS.length + " tipos" : "todos os tipos");
@@ -1046,59 +979,6 @@ function renderStatus(st) {
   return '<section class="sec full" id="status" aria-label="Situação das respostas"><div class="sec-h"><h2>Respostas</h2><p>' + st.filter(x => x.s.k !== "pend").length + " de 13 responderam</p></div><div class=\"status-cols\">" +
     col("bad", "! Precisam corrigir", st.filter(x => x.s.k === "bad")) + col("pend", "○ Pendentes", st.filter(x => x.s.k === "pend")) + col("ok", "✓ Respondidos", st.filter(x => x.s.k === "ok")) + "</div></section>";
 }
-/* Respostas recebidas pelo formulário sem login (mensagem com código). */
-function lerImportacao() {
-  const codes = (S.imp.txt.match(/AFX1\.[A-Za-z0-9_-]+/g) || []);
-  const vistos = {};
-  const itens = codes.map(c => decodificar(c)).map((r, i) => ({ r, cod: codes[i] }));
-  // mesma pessoa mais de uma vez na colagem: fica a mensagem mais recente
-  itens.forEach(x => { if (x.r && (!vistos[x.r.id] || x.r.geradoEm > vistos[x.r.id].r.geradoEm)) vistos[x.r.id] = x; });
-  S.imp.itens = itens.map(x => {
-    if (!x.r) return { erro: true };
-    if (vistos[x.r.id] !== x) return { dup: true, r: x.r };
-    const atual = S.respostas[x.r.id];
-    const ref = atual ? (atual.geradoEm || atual.atualizadoEm || "") : "";
-    const antigo = !!atual && x.r.geradoEm && ref >= x.r.geradoEm;
-    return { r: x.r, atual, antigo, ok: !antigo, iss: validar(x.r) };
-  });
-  if (!codes.length) toast("Nenhum código encontrado. Cole a mensagem inteira, incluindo a linha que começa com AFX1.");
-}
-async function salvarImportacao() {
-  const alvo = (S.imp.itens || []).filter(x => x.ok);
-  if (!alvo.length || S.imp.salvando) return;
-  S.imp.salvando = true; render();
-  let n = 0, falhas = 0;
-  for (const x of alvo) {
-    try {
-      const atual = S.respostas[x.r.id];
-      const res = await S.backend.save({ ...x.r, origem: "mensagem" }, atual ? atual.rev || 0 : 0);
-      if (res && res.ok) { n++; S.respostas[x.r.id] = { ...res.registro, _doc: S.docOf[x.r.id] || x.r.id }; } else falhas++;
-    } catch (e) { falhas++; }
-  }
-  S.imp = { txt: "", itens: null, salvando: false };
-  render();
-  toast(n + " resposta" + (n === 1 ? "" : "s") + " importada" + (n === 1 ? "" : "s") + (falhas ? " · " + falhas + " com falha, tente de novo" : "") + ".");
-}
-function renderImport() {
-  const it = S.imp.itens;
-  let lista = "";
-  if (it) {
-    const validos = it.filter(x => x.ok).length;
-    lista = '<ul class="who" style="margin-top:12px">' + it.map(x => {
-      if (x.erro) return '<li><strong>Código inválido ou incompleto</strong><span class="why"><span>Peça ao militar para reenviar a mensagem sem alterar o código.</span></span></li>';
-      if (x.dup) return "<li><strong>" + esc(NOME[x.r.id]) + '</strong><span class="why"><span>Mensagem repetida: vale a mais recente desta colagem.</span></span></li>';
-      const st = temConflito(x.iss) ? '<span class="pill bad">! Precisa corrigir</span>' : '<span class="pill ok">✓ Sem conflito</span>';
-      return "<li><strong>" + esc(NOME[x.r.id]) + " · gerada em " + esc(fmtHora(x.r.geradoEm)) + '</strong><span class="why">' +
-        (x.antigo ? '<span class="pill warn">Mais antiga que a resposta já registrada · não será importada</span>' : st + "<span>" + (x.atual ? "Substitui a resposta atual" : "Nova resposta") + "</span>") +
-        "<span>" + esc((x.r.periodos.length ? x.r.periodos.map(p => CAT[p.cat].n + " " + intTxt(p)).join("; ") : "Sem afastamentos") + " · " + (x.r.dispensa === "sem" ? "Sem dispensa" : x.r.dispensa ? DISP[x.r.dispensa].n : "dispensa não escolhida")) + "</span></span></li>";
-    }).join("") + "</ul>" +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px"><button class="btn pri" data-act="impok" ' + (validos && !S.imp.salvando ? "" : "disabled") + ">" + (S.imp.salvando ? "Salvando…" : "Salvar " + validos + " resposta" + (validos === 1 ? "" : "s")) + '</button><button class="btn" data-act="impclear">Limpar</button></div>';
-  }
-  return '<section class="sec full" aria-label="Importar respostas por mensagem"><div class="sec-h"><h2>Respostas recebidas por mensagem</h2><p>De quem preencheu o formulário sem login</p></div>' +
-    '<p class="hint" style="margin:0 0 8px;font-size:13px">Cole aqui as mensagens recebidas pelo WhatsApp ou e-mail (pode colar várias de uma vez) e toque em Ler.</p>' +
-    '<textarea id="imptxt" rows="4" style="width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--surface);font:13px/1.4 var(--f-body);resize:vertical" placeholder="LEVANTAMENTO DE AFASTAMENTOS · Cur Inf EsAO&#10;Militar: …&#10;Código (não alterar):&#10;AFX1.…">' + esc(S.imp.txt) + "</textarea>" +
-    '<div style="margin-top:8px"><button class="btn" data-act="impler">Ler mensagens</button></div>' + lista + "</section>";
-}
 function renderDates() {
   const ev = [];
   milsFiltro().forEach(m => {
@@ -1191,15 +1071,6 @@ document.addEventListener("click", ev => {
     case "tdes": S.draft.temDeslig = d.v === "1"; if (!S.draft.temDeslig) S.draft.deslig = null; else S.pickMonth = S.draft.deslig ? MESES.findIndex(M => +S.draft.deslig.slice(5, 7) - 1 === M.m) : 2; render(); return;
     case "dday": S.draft.deslig = d.d; render(); return;
     case "send": enviar(); return;
-    case "copymsg": {
-      const ta = document.getElementById("msgtxt");
-      const fallback = () => { ta.focus(); ta.select(); toast("Texto selecionado. Use Copiar do seu aparelho."); };
-      try { navigator.clipboard.writeText(ta.value).then(() => toast("Mensagem copiada."), fallback); } catch (x) { fallback(); }
-      return;
-    }
-    case "impler": lerImportacao(); render(); return;
-    case "impok": salvarImportacao(); return;
-    case "impclear": S.imp = { txt: "", itens: null }; render(); return;
     case "loadRemote": pickMilitar(S.mid); render(); return;
     case "keepMine": S.baseRev = S.staleRemote.rev || 0; S.staleRemote = null; render(); return;
     case "reedit": { const id = S.sent; S.sent = null; pickMilitar(id); S.step = 1; render(); scrollTop(); return; }
@@ -1228,10 +1099,7 @@ document.addEventListener("toggle", ev => { if (ev.target.id === "filtros") S.fi
 document.addEventListener("change", ev => {
   if (ev.target.id === "fmil") { S.fMil = ev.target.value; render(); }
 });
-document.addEventListener("input", ev => {
-  if (ev.target.id === "obs" && S.editing) S.editing.obs = ev.target.value;
-  if (ev.target.id === "imptxt") S.imp.txt = ev.target.value;
-});
+document.addEventListener("input", ev => { if (ev.target.id === "obs" && S.editing) S.editing.obs = ev.target.value; });
 document.addEventListener("keydown", ev => { if (ev.key === "Escape" && document.getElementById("layer").innerHTML) document.getElementById("layer").innerHTML = ""; });
 
 render();

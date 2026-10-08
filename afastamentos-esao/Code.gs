@@ -28,6 +28,7 @@ var NOMES_CAT = {
 };
 
 function doGet() {
+  garantirInstalacao_();
   return HtmlService.createHtmlOutputFromFile('index')
     .setTitle('Afastamentos Infantaria EsAO')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1, viewport-fit=cover');
@@ -117,7 +118,27 @@ function leitura_(rec) {
   }).join('\n');
 }
 
-/** Rode UMA vez pelo editor (botão Executar) para criar as abas e lançar os dados do Maj Modesto. */
+/** Menu na planilha: Afastamentos › Ver links. */
+function onOpen() {
+  SpreadsheetApp.getUi().createMenu('Afastamentos').addItem('Ver links do formulário e do painel', 'verLinks').addToUi();
+}
+
+function verLinks() {
+  garantirInstalacao_();
+  var url = ScriptApp.getService().getUrl();
+  var chave = PropertiesService.getScriptProperties().getProperty('PAINEL_CHAVE');
+  var a = function (u) { return '<a href="' + u + '" target="_blank" style="word-break:break-all">' + u + '</a>'; };
+  var html = url
+    ? '<p><b>Formulário (envie este aos militares):</b><br>' + a(url) + '</p><p><b>Seu painel (não repasse):</b><br>' + a(url + '?v=painel&chave=' + chave) + '</p>'
+    : '<p>O formulário ainda não foi implantado. No Apps Script, use Implantar › Nova implantação › App da Web.</p>';
+  SpreadsheetApp.getUi().showModalDialog(HtmlService.createHtmlOutput('<div style="font:14px Arial,sans-serif;line-height:1.5">' + html + '</div>').setWidth(560).setHeight(240), 'Levantamento de afastamentos');
+}
+
+function garantirInstalacao_() {
+  if (!PropertiesService.getScriptProperties().getProperty('INSTALADO')) instalar();
+}
+
+/** Cria as abas, a chave do painel e lança os dados do Maj Modesto. Roda sozinha no primeiro acesso. */
 function instalar() {
   aba_(ABA, CAB);
   aba_(ABA_HIST, ['quando', 'id', 'militar', 'rev', 'dados']);
@@ -134,4 +155,5 @@ function instalar() {
       ]
     }), 0);
   }
+  props.setProperty('INSTALADO', '1');
 }
