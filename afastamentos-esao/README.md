@@ -6,6 +6,7 @@ Um único arquivo (`index.html`) funciona em duas hospedagens:
 | Hospedagem | Base de dados | Quem consegue responder |
 |---|---|---|
 | **Artifact do Claude** (já publicado) | Base compartilhada do artifact, atualizada em tempo real | Quem tiver conta claude.ai e receber o link com permissão de edição |
+| **`formulario.html`** (sem login) | Nenhuma: gera uma mensagem com código que o militar envia ao Maj Modesto (WhatsApp/e-mail); o gestor cola no painel em "Respostas recebidas por mensagem" | Qualquer pessoa que consiga abrir a página |
 | **Google Apps Script** (opcional) | Planilha Google, com histórico de envios | Qualquer pessoa com o link, sem login |
 
 Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstração** e salva só no próprio aparelho.
@@ -15,6 +16,13 @@ Aberto direto no navegador (sem hospedagem), o arquivo entra em **modo demonstra
 - **Militares** abrem o link e veem **só o formulário**. Não aparecem o painel, os botões de troca de tela nem o status dos colegas. Cada um só lê a própria resposta.
 - **Maj Modesto** (dono do artifact, ou quem tiver a chave do painel no Apps Script) vê o formulário e o painel completo.
 - No artifact isso é garantido pelas regras da base: `respostas` só é lida pelo dono; cada conta grava e lê apenas `respostas/<id da conta>`. Nem quem tem permissão de Editor consegue ler as respostas dos outros.
+
+## Formulário sem login (`formulario.html`)
+
+- Gerado a partir do `index.html` com `node gerar-formulario.js` (muda só `AVULSO = true` e o título). Depois de alterar o `index.html`, gere de novo.
+- Arquivo único, sem servidor: pode ser publicado como artifact com link público, hospedado em qualquer site estático (GitHub Pages, Google Sites) ou enviado como arquivo.
+- No final, o militar toca em **Enviar pelo WhatsApp** (ou copia a mensagem). A mensagem traz o resumo legível e um código `AFX1.…`.
+- A resposta também fica guardada no aparelho do militar; para corrigir, ele reabre o formulário, ajusta e envia nova mensagem. No painel vale a mais recente; mensagens antigas coladas de novo são ignoradas.
 
 ## Como funciona
 
