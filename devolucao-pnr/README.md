@@ -11,7 +11,10 @@ HTML/JavaScript servida por um Google Apps Script ligado a uma Planilha Google.
 | `index.html` | A página inteira: tela do aluno, do instrutor e da coordenação |
 | `Code.gs` | Backend: agenda, regras, e-mails e gravação na planilha |
 | `gerar-apps-script.js` | Junta os dois num `Codigo.gs` só, para colar no editor |
-| `Codigo.gs` | **Arquivo gerado.** É este que se cola no Apps Script |
+| `Codigo.gs` | **Arquivo gerado.** É este que vai para o Apps Script |
+| `instalar.sh` · `publicar.sh` | Instalação e atualização pelo terminal do Mac, sem clicar em telas |
+| `appsscript.json` | Fuso, permissões e configuração do app da web |
+| `COMO-RODAR-NO-MAC.md` | **Comece por aqui** se for publicar pelo terminal |
 
 Para testar sem publicar nada, abra o `index.html` direto no navegador: ele entra em
 **modo demonstração**, com dados salvos só naquele aparelho, e um botão para alternar entre as
@@ -134,7 +137,12 @@ Os 11 instrutores da escala 2026 já vêm lançados:
 | Cap Cavalcanti | 11 | Até 29/12 |
 | Cap Marcello | 11 | Até 19/11; 30/11 a 22/12 |
 
-## Publicar (cerca de 5 minutos, uma vez)
+## Publicar pelo terminal (recomendado)
+
+Dois comandos, descritos em `COMO-RODAR-NO-MAC.md`: `./instalar.sh` cria a planilha
+**Entrega PNR 2026** e publica; `./publicar.sh` atualiza mantendo o mesmo endereço.
+
+## Publicar pelo navegador (alternativa)
 
 1. Abra **sheets.new** e nomeie a planilha **Entrega PNR 2026**.
 2. Menu **Extensões › Apps Script**. Apague o conteúdo do editor, cole o **`Codigo.gs` inteiro** e

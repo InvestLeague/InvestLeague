@@ -1,0 +1,5 @@
+# Pasta de trabalho do clasp: contém o vínculo com a SUA planilha e o SEU projeto.
+build/
+# Identificador da publicação: é o que mantém o mesmo endereço nas atualizações.
+.deployid
+node_modules/
