@@ -17,13 +17,30 @@ Para testar sem publicar nada, abra o `index.html` direto no navegador: ele entr
 **modo demonstração**, com dados salvos só naquele aparelho, e um botão para alternar entre as
 três telas.
 
-## Quem vê o quê
+## Como os links circulam
+
+A coordenação divulga **apenas aos instrutores**. Cada instrutor, na tela dele, copia o
+**link dos seus orientados** e repassa à sua turma. Quem abre o link de um instrutor **só consegue
+agendar com aquele instrutor**: não escolhe na lista e não cai na agenda de outro, nem alterando o
+endereço, porque o servidor refaz essa amarração a cada pedido.
+
+```
+Coordenação ──(link da tela do instrutor)──► Instrutor ──(link dos orientados)──► Alunos dele
+```
 
 | Perfil | Link | Acesso |
 |---|---|---|
-| **Aluno** | `.../exec` | Aberto. Ele digita o nome de guerra e escolhe o instrutor |
-| **Instrutor** | `.../exec?v=instrutor&chave=<CHAVE>` | Um link pessoal por instrutor |
 | **Coordenação** | `.../exec?v=painel&chave=<CHAVE>` | Chave de administrador |
+| **Instrutor** | `.../exec?v=instrutor&chave=<CHAVE>` | Um link pessoal por instrutor |
+| **Aluno de um instrutor** | `.../exec?i=<CHAVE>` | Aberto, já amarrado àquele instrutor |
+| **Link geral** | `.../exec` | Reserva: o aluno escolhe o instrutor na lista |
+
+Cada instrutor tem **duas chaves diferentes**, nas colunas 5 e 6 da aba `Instrutores`: a da tela
+dele e a do link dos orientados. A segunda não dá nenhum poder de instrutor, e a primeira nunca
+aparece no painel, justamente para não ser repassada por engano.
+
+O **link geral** existe só para quem ficou sem o link do seu instrutor. Nele o aluno escolhe na
+lista e, se errar, o instrutor transfere o pedido ao responsável certo.
 
 O aluno nunca vê o nome de outro aluno: na agenda do instrutor ele só vê que o horário está
 ocupado. Instrutor e coordenação veem os nomes.
@@ -90,7 +107,7 @@ Criadas sozinhas no primeiro acesso.
 
 | Aba | Para que serve |
 |---|---|
-| `Instrutores` | Nome, e-mail, disponibilidade, total de alunos, chave pessoal e `ativo` |
+| `Instrutores` | Nome, e-mail, disponibilidade, total de alunos, as duas chaves e `ativo` |
 | `Agendamentos` | Uma linha por agendamento, com histórico no JSON |
 | `Bloqueios` | Dias e tempos bloqueados por instrutor |
 | `Aceites` | Quem leu e aceitou os termos, com data, hora e versão (prova) |
@@ -119,7 +136,7 @@ Os 11 instrutores da escala 2026 já vêm lançados:
 
 ## Publicar (cerca de 5 minutos, uma vez)
 
-1. Abra **sheets.new** e dê um nome à planilha, por exemplo "Devolução de PNR 2026".
+1. Abra **sheets.new** e nomeie a planilha **Entrega PNR 2026**.
 2. Menu **Extensões › Apps Script**. Apague o conteúdo do editor, cole o **`Codigo.gs` inteiro** e
    salve com Ctrl+S.
 3. Na engrenagem **Configurações do projeto**, confirme o fuso **(GMT-03:00) São Paulo**. É dele que
@@ -129,8 +146,10 @@ Os 11 instrutores da escala 2026 já vêm lançados:
    verificou este app", clique em **Avançado › Acessar**; o app é seu.
    A autorização pede planilha, Gmail e Agenda, que são os três recursos usados.
 5. Volte à planilha e recarregue a página. No menu **PNR**:
-   - **Ver links** mostra o link dos alunos, o seu painel e o link de cada instrutor;
+   - **Ver links** mostra o seu painel, a tela e o link dos orientados de cada instrutor, e o link geral;
    - **Ativar lembretes diários** cria os gatilhos das 18 h e das 7 h.
+6. Mande a **cada instrutor**, individualmente, só a linha dele. No primeiro acesso ele já vê o
+   link dos orientados com um botão para mandar no WhatsApp da turma.
 
 Ao alterar algo depois, rode `node gerar-apps-script.js`, cole o novo `Codigo.gs` e use
 **Implantar › Gerenciar implantações › Editar › Nova versão**, para manter o mesmo link.

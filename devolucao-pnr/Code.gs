@@ -31,7 +31,8 @@ var A_ACEITE = 'Aceites';
 var A_LOG = 'Log';
 var A_CONFIG = 'Config';
 
-var CAB_INST = ['nome', 'e-mail (para lembretes)', 'disponibilidade', 'total de alunos', 'chave pessoal (não repassar)', 'ativo'];
+var CAB_INST = ['nome', 'e-mail (para lembretes)', 'disponibilidade', 'total de alunos',
+  'chave do instrutor (só para ele)', 'chave do link dos orientados', 'ativo'];
 var CAB_AGEND = ['id', 'nome de guerra', 'instrutor', 'data', 'tempo', 'hora', 'situação', 'atualizado em', 'resumo (leitura)', 'dados (JSON - não editar)'];
 var CAB_BLOQ = ['instrutor (ou TODOS)', 'data', 'tempo (ou TODOS)', 'motivo', 'criado em'];
 var CAB_ACEITE = ['quando', 'nome de guerra', 'instrutor', 'versão do termo', 'itens aceitos'];
@@ -186,7 +187,7 @@ function instrutores_() {
   for (var i = 0; i < vals.length; i++) {
     var nome = String(vals[i][0] || '').trim();
     if (!nome) continue;
-    if (String(vals[i][5]).toLowerCase() === 'não' || String(vals[i][5]).toLowerCase() === 'nao') continue;
+    if (String(vals[i][6]).toLowerCase() === 'não' || String(vals[i][6]).toLowerCase() === 'nao') continue;
     out.push({
       nome: nome,
       email: String(vals[i][1] || '').trim(),
@@ -194,6 +195,7 @@ function instrutores_() {
       janelas: janelas_(vals[i][2], cfg),
       total: Number(vals[i][3]) || 0,
       chave: String(vals[i][4] || '').trim(),
+      chaveAlunos: String(vals[i][5] || '').trim(),
       linha: i + 2
     });
   }
@@ -209,6 +211,18 @@ function papel_(chave) {
   var lista = instrutores_();
   for (var i = 0; i < lista.length; i++) if (lista[i].chave && lista[i].chave === chave) return { papel: 'instrutor', instrutor: lista[i].nome };
   return { papel: 'aluno', chaveInvalida: true };
+}
+
+/**
+ * Link que o instrutor divulga aos seus orientados: amarra o aluno àquele instrutor.
+ * É uma chave diferente da do instrutor, e não dá nenhum poder de instrutor.
+ */
+function instrutorPorTokenAlunos_(tok) {
+  tok = String(tok || '').trim();
+  if (!tok) return null;
+  var lista = instrutores_();
+  for (var i = 0; i < lista.length; i++) if (lista[i].chaveAlunos && lista[i].chaveAlunos === tok) return lista[i];
+  return null;
 }
 
 /* ===================== agendamentos ===================== */
@@ -302,7 +316,7 @@ function bloqueios_() {
  * Tudo o que a página precisa numa só chamada.
  * O aluno recebe apenas os tempos ocupados (sem nome de colega) e o próprio pedido.
  */
-function estado(chave, nomeGuerra) {
+function estado(chave, nomeGuerra, tokAlunos) {
   garantirInstalacao_();
   var p = papel_(chave);
   var cfg = config_();
@@ -310,18 +324,28 @@ function estado(chave, nomeGuerra) {
   var ags = agendamentos_();
   var bls = bloqueios_();
 
+  // Aluno que veio pelo link do instrutor: fica amarrado a ele, sem escolher.
+  var fixo = (p.papel === 'aluno' && tokAlunos) ? instrutorPorTokenAlunos_(tokAlunos) : null;
+
   var pub = {
     papel: p.papel,
     chaveInvalida: !!p.chaveInvalida,
+    instrutorFixo: fixo ? fixo.nome : '',
+    tokenInvalido: !!(p.papel === 'aluno' && tokAlunos && !fixo),
     eu: p.instrutor || '',
     hoje: hoje_(),
     agora: agora_(),
+    // A página roda num iframe, então o endereço publicado tem de vir do servidor.
+    urlBase: (function () { try { return ScriptApp.getService().getUrl() || ''; } catch (e) { return ''; } })(),
     termoVersao: TERMO_VERSAO,
     cfg: cfg,
     tempos: TEMPOS,
     feriados: FERIADOS,
     instrutores: insts.map(function (i) {
-      return { nome: i.nome, dispTexto: i.dispTexto, janelas: i.janelas, total: i.total, temEmail: !!i.email };
+      var o = { nome: i.nome, dispTexto: i.dispTexto, janelas: i.janelas, total: i.total, temEmail: !!i.email };
+      // A chave do link dos orientados só vai para a coordenação e para o próprio instrutor.
+      if (p.papel === 'painel' || (p.papel === 'instrutor' && i.nome === p.instrutor)) o.tokenAlunos = i.chaveAlunos;
+      return o;
     }),
     bloqueios: bls.map(function (b) { return { instrutor: b.instrutor, data: b.data, tempo: b.tempo, motivo: b.motivo }; })
   };
@@ -459,6 +483,13 @@ function solicitar(dados) {
     var cfg = config_(), insts = instrutores_(), ags = agendamentos_(), bls = bloqueios_();
     var nome = String(dados.nomeGuerra || '').trim();
     if (nome.length < 3) return { ok: false, erro: 'Informe o seu nome de guerra.' };
+
+    // Veio pelo link de um instrutor: o pedido é dele, e o aluno não pode desviar para outro.
+    if (dados.tokAlunos) {
+      var dono = instrutorPorTokenAlunos_(dados.tokAlunos);
+      if (!dono) return { ok: false, erro: 'Esse link não vale mais. Peça o link atual ao seu instrutor.' };
+      dados.instrutor = dono.nome;
+    }
     if (!dados.endereco || String(dados.endereco).trim().length < 8) return { ok: false, erro: 'Informe o endereço do PNR (rua, bloco e apartamento).' };
     if (!dados.viagem) return { ok: false, erro: 'Informe a data da sua viagem.' };
     if (!dados.aceitou) return { ok: false, erro: 'É preciso ler e aceitar os termos.' };
@@ -908,15 +939,20 @@ function verLinks() {
   }
   var chave = PropertiesService.getScriptProperties().getProperty('PAINEL_CHAVE');
   var a = function (u, t) { return '<a href="' + u + '" target="_blank" style="word-break:break-all">' + (t || u) + '</a>'; };
-  var html = '<p><b>1. Link dos alunos</b> — mande este para a turma (sem login):<br>' + a(url) + '</p>'
-    + '<p><b>2. Seu painel de coordenação</b> — não repasse:<br>' + a(url + '?v=painel&chave=' + chave) + '</p>'
-    + '<p><b>3. Link de cada instrutor</b> — mande o link certo para cada um, individualmente:</p><ul>';
+  var html = '<p><b>1. Seu painel de coordenação</b> — não repasse:<br>' + a(url + '?v=painel&chave=' + chave) + '</p>'
+    + '<p><b>2. Link de cada instrutor</b> — é isto que o senhor divulga: mande a cada instrutor,'
+    + ' individualmente, apenas a linha dele. Dentro da tela, o próprio instrutor copia o link dos'
+    + ' orientados dele e repassa à sua turma.</p><ul>';
   instrutores_().forEach(function (i) {
-    html += '<li style="margin-bottom:6px"><b>' + i.nome + '</b><br>' + a(url + '?v=instrutor&chave=' + i.chave) + '</li>';
+    html += '<li style="margin-bottom:10px"><b>' + i.nome + '</b>'
+      + '<br><i>Tela do instrutor:</i> ' + a(url + '?v=instrutor&chave=' + i.chave)
+      + '<br><i>Link dos orientados dele:</i> ' + a(url + '?i=' + i.chaveAlunos)
+      + '</li>';
   });
-  html += '</ul>';
+  html += '</ul><p><b>3. Link geral</b> — só para quem ficou sem o link do instrutor. Nele o aluno'
+    + ' escolhe o instrutor na lista:<br>' + a(url) + '</p>';
   SpreadsheetApp.getUi().showModalDialog(
-    HtmlService.createHtmlOutput('<div style="font:14px Arial,sans-serif;line-height:1.5">' + html + '</div>').setWidth(620).setHeight(560),
+    HtmlService.createHtmlOutput('<div style="font:14px Arial,sans-serif;line-height:1.5">' + html + '</div>').setWidth(680).setHeight(600),
     'Links do sistema de devolução de PNR');
 }
 
@@ -924,15 +960,11 @@ function gerarChaves() {
   var sh = aba_(A_INST, CAB_INST);
   var n = sh.getLastRow();
   if (n < 2) return;
-  var vals = sh.getRange(2, 1, n - 1, CAB_INST.length).getValues(), mudou = 0;
-  for (var i = 0; i < vals.length; i++) {
-    if (String(vals[i][0] || '').trim() && !String(vals[i][4] || '').trim()) {
-      sh.getRange(i + 2, 5).setValue(Utilities.getUuid().replace(/-/g, '').slice(0, 16));
-      mudou++;
-    }
-  }
-  if (mudou) log_('sistema', 'gerou chaves', mudou + ' instrutor(es)');
-  try { SpreadsheetApp.getUi().alert(mudou ? mudou + ' chave(s) gerada(s).' : 'Todos os instrutores já têm chave.'); } catch (e) {}
+  var mudou = gerarChaves_();
+  if (mudou) log_('sistema', 'gerou chaves', mudou + ' chave(s)');
+  try {
+    SpreadsheetApp.getUi().alert(mudou ? mudou + ' chave(s) gerada(s).' : 'Todos os instrutores já têm as duas chaves.');
+  } catch (e) {}
 }
 
 /* ===================== instalação ===================== */
@@ -947,16 +979,20 @@ function instalar() {
 
   var shI = aba_(A_INST, CAB_INST);
   if (shI.getLastRow() < 2) {
+    var nova = function () { return Utilities.getUuid().replace(/-/g, '').slice(0, 16); };
     var rows = SEED_INSTRUTORES.map(function (s) {
-      return [s[0], '', s[2], s[1], Utilities.getUuid().replace(/-/g, '').slice(0, 16), 'sim'];
+      return [s[0], '', s[2], s[1], nova(), nova(), 'sim'];
     });
     shI.getRange(2, 1, rows.length, CAB_INST.length).setValues(rows);
-    shI.setColumnWidth(3, 220); shI.setColumnWidth(5, 180);
+    shI.setColumnWidth(3, 220); shI.setColumnWidth(5, 180); shI.setColumnWidth(6, 180);
     shI.getRange(1, 1, 1, CAB_INST.length).setNote(
       'Edite aqui sem mexer no código.\n'
       + '• disponibilidade: "Até 04/12", "13/11 a 26/11", "Até 19/11; 30/11 a 22/12", "03/12 e 04/12"\n'
       + '• e-mail: usado nos lembretes da véspera (18 h) e do dia (7 h)\n'
-      + '• ativo: escreva "não" para tirar o instrutor da lista dos alunos');
+      + '• chave do instrutor: abre a tela dele. Mande só para ele.\n'
+      + '• chave do link dos orientados: vai no link que o instrutor passa aos alunos dele.\n'
+      + '  Quem abre esse link só consegue agendar com esse instrutor.\n'
+      + '• ativo: escreva "não" para tirar o instrutor da lista');
   }
 
   aba_(A_AGEND, CAB_AGEND);
@@ -980,14 +1016,17 @@ function instalar() {
   log_('sistema', 'instalou', 'abas, instrutores e chaves');
 }
 
+/** Cada instrutor tem duas chaves: a dele (coluna 5) e a do link dos orientados (coluna 6). */
 function gerarChaves_() {
   var sh = aba_(A_INST, CAB_INST);
   var n = sh.getLastRow();
-  if (n < 2) return;
-  var vals = sh.getRange(2, 1, n - 1, CAB_INST.length).getValues();
+  if (n < 2) return 0;
+  var vals = sh.getRange(2, 1, n - 1, CAB_INST.length).getValues(), mudou = 0;
+  var nova = function () { return Utilities.getUuid().replace(/-/g, '').slice(0, 16); };
   for (var i = 0; i < vals.length; i++) {
-    if (String(vals[i][0] || '').trim() && !String(vals[i][4] || '').trim()) {
-      sh.getRange(i + 2, 5).setValue(Utilities.getUuid().replace(/-/g, '').slice(0, 16));
-    }
+    if (!String(vals[i][0] || '').trim()) continue;
+    if (!String(vals[i][4] || '').trim()) { sh.getRange(i + 2, 5).setValue(nova()); mudou++; }
+    if (!String(vals[i][5] || '').trim()) { sh.getRange(i + 2, 6).setValue(nova()); mudou++; }
   }
+  return mudou;
 }

@@ -446,7 +446,7 @@ const horaDe = (data, hhmm) => new Date(String(data).slice(0, 10) + "T" + hhmm +
 /* ===================== estado ===================== */
 
 const S = {
-  papel: "aluno", eu: "", chave: "", view: "", est: null, carregando: true,
+  papel: "aluno", eu: "", chave: "", tokAlunos: "", view: "", est: null, carregando: true,
   step: 0, mes: null, dia: null,
   dados: { nomeGuerra: "", instrutor: "", endereco: "", viagem: "", novaOM: "", telefone: "", email: "" },
   aceites: {}, aceiteGeral: false, rolouTermo: false,
@@ -627,12 +627,15 @@ const normNome = s => String(s || "").trim().toUpperCase()
 async function carregar(silencioso) {
   if (!API) return;
   try {
-    const est = await API.call("estado", S.chave, S.dados.nomeGuerra || "");
+    const est = await API.call("estado", S.chave, S.dados.nomeGuerra || "", S.tokAlunos);
     S.est = est;
     S.papel = est.papel || "aluno";
     S.eu = est.eu || "";
     if (!S.view) S.view = S.papel === "painel" ? "painel" : S.papel === "instrutor" ? "instrutor" : "aluno";
     if (est.chaveInvalida) banner("<b>Essa chave não vale mais.</b> Abrindo a tela do aluno. Peça o link certo à coordenação.", "w");
+    // Link do instrutor: o aluno já vem amarrado a ele e não escolhe na lista.
+    if (est.instrutorFixo) { S.dados.instrutor = est.instrutorFixo; salvarLocal(); }
+    if (est.tokenInvalido) banner("<b>Esse link não vale mais.</b> Peça o link atual ao seu instrutor. Por enquanto, escolha-o na lista.", "w");
     const vivos = (est.meus || []).filter(a => ["solicitado", "encaixe", "confirmado", "pendencias", "recusado"].includes(a.situacao));
     S.meu = vivos.sort((a, b) => (b.atualizadoEm || "") > (a.atualizadoEm || "") ? 1 : -1)[0] || null;
     if (!S.mes) S.mes = (est.cfg && est.cfg.inicio) ? String(est.cfg.inicio).slice(0, 7) : null;
@@ -854,25 +857,35 @@ function passoQuem() {
   const agPor = {};
   (S.est.ocupados || []).forEach(o => { agPor[o.instrutor] = (agPor[o.instrutor] || 0) + 1; });
   const nome = S.dados.nomeGuerra;
+  const fixo = S.est.instrutorFixo;
 
   return guia("Quem é você",
-    "Digite o seu <b>nome de guerra</b> e toque no <b>seu instrutor responsável</b>. Não há senha nem cadastro.",
+    fixo
+      ? "Digite o seu <b>nome de guerra</b>. O instrutor já vem definido pelo link que ele lhe mandou."
+      : "Digite o seu <b>nome de guerra</b> e toque no <b>seu instrutor responsável</b>. Não há senha nem cadastro.",
     "você lê e aceita os termos da entrega.")
     + '<div class="card"><div class="field" style="margin-top:0">'
     + "<label for=\"ng\">Seu nome de guerra</label>"
     + '<small>Escreva como você é tratado na OM, por exemplo "Souza" ou "Lima Filho". É por ele que você encontra o seu agendamento depois.</small>'
     + '<input id="ng" type="text" data-bind="nomeGuerra" value="' + esc(nome) + '" autocomplete="off" autocapitalize="words" placeholder="Ex.: Souza">'
     + "</div></div>"
-    + '<h2 class="q" style="margin-top:18px">Seu instrutor responsável</h2>'
-    + '<p class="hint">Se escolher o instrutor errado, não há problema: ele transfere o seu pedido para o responsável certo e você é avisado.</p>'
-    + '<div class="opts">' + insts.map(i => {
+    + (fixo
+      ? '<div class="card" style="margin-top:14px;border-color:var(--accent)">'
+      + '<span class="pill acc">Seu instrutor</span>'
+      + '<div style="font-family:var(--f-display);font-size:24px;font-weight:700;margin-top:6px">' + esc(fixo) + "</div>"
+      + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">Recebe vistorias: <b>'
+      + esc((instDe(fixo) || {}).dispTexto || "período completo") + "</b>.<br>"
+      + "Você abriu o link do " + esc(fixo) + ", então a sua vistoria será com ele. Se ele não for o seu instrutor responsável, peça o link certo ao seu orientador.</p></div>"
+      : '<h2 class="q" style="margin-top:18px">Seu instrutor responsável</h2>'
+      + '<p class="hint">Se escolher o instrutor errado, não há problema: ele transfere o seu pedido para o responsável certo e você é avisado.</p>'
+      + '<div class="opts">' + insts.map(i => {
       const n = agPor[i.nome] || 0;
       return '<button class="opt" role="radio" data-act="inst" data-n="' + esc(i.nome) + '" aria-checked="' + (S.dados.instrutor === i.nome) + '">'
         + '<span class="radio" aria-hidden="true"></span><strong>' + esc(i.nome) + "</strong>"
         + '<span class="sub">Recebe vistorias: ' + esc(i.dispTexto || "período completo") + "</span>"
         + '<span class="tags"><span class="pill pend">' + i.total + " alunos</span>"
         + (n ? '<span class="pill acc">' + n + " já agendado(s)</span>" : "") + "</span></button>";
-    }).join("") + "</div>"
+    }).join("") + "</div>")
     + nav(0, S.dados.nomeGuerra.trim().length >= 3 && S.dados.instrutor ? 2 : null,
       S.dados.nomeGuerra.trim().length < 3 ? "Digite o seu nome de guerra" : !S.dados.instrutor ? "Escolha o seu instrutor" : "Ler os termos");
 }
@@ -1019,7 +1032,7 @@ function passoHorario() {
     + '<div class="card" style="margin-bottom:12px"><strong>' + esc(inst.nome) + "</strong>"
     + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">Recebe vistorias em ' + esc(livresNaJanela || inst.dispTexto) + ". "
     + (totalLivre ? "<b>" + totalLivre + " tempo(s) livre(s)</b> neste mês." : "Nenhum tempo livre neste mês: veja os outros meses.") + "</p>"
-    + '<button class="btn sm" data-act="go" data-i="1" style="margin-top:10px">Trocar de instrutor</button></div>'
+    + (S.est.instrutorFixo ? "" : '<button class="btn sm" data-act="go" data-i="1" style="margin-top:10px">Trocar de instrutor</button>') + "</div>"
     + '<div class="mtabs" role="group">' + meses.map(m =>
       '<button data-act="mes" data-v="' + m.ym + '" aria-pressed="' + (S.mes === m.ym) + '">' + m.curto + "</button>").join("") + "</div>"
     + '<div class="wk">' + WD_CURTO.map((w, i) => '<span>' + w + "</span>").join("") + "</div>"
@@ -1155,7 +1168,9 @@ function renderInstrutor() {
     corpo = '<div class="sec full"><div class="sec-h"><h2>Pedidos</h2><p>' + pend.length + " aguardando</p></div>"
       + (pend.length ? '<div class="stack">' + pend.map(cardPedido).join("") + "</div>"
         : '<p class="empty">Nenhum pedido aguardando. Quando um aluno solicitar, aparece aqui e o senhor recebe um e-mail, se tiver cadastrado.</p>')
-      + "</div>";
+      + "</div>"
+      // Sem nenhum movimento ainda, o primeiro passo do instrutor é repassar o link à turma.
+      + (ags.length ? "" : cardLinkAlunos(inst));
   } else if (S.abaInst === "hoje") {
     corpo = '<div class="sec full"><div class="sec-h"><h2>Hoje · ' + f3(S.est.hoje) + "</h2><p>" + hojeL.length + " vistoria(s)</p></div>"
       + (hojeL.length ? '<div class="stack">' + hojeL.map(a => cardVistoria(a, true)).join("") + "</div>"
@@ -1183,11 +1198,11 @@ function renderInstrutor() {
 function renderOnboardingInstrutor(inst) {
   return guia("Bem-vindo, " + S.eu, "Três telas rápidas sobre como o sistema funciona para o senhor.", "")
     + '<div class="stack">'
-    + '<div class="card"><strong>1. O que o senhor faz aqui</strong><p style="margin:4px 0 0;color:var(--muted)">Os seus alunos pedem horários pelo link que a coordenação mandou. O senhor <b>confirma ou recusa</b> cada pedido, e depois registra o resultado da vistoria.</p></div>'
+    + '<div class="card"><strong>1. Primeiro, mande o link à sua turma</strong><p style="margin:4px 0 0;color:var(--muted)">O senhor tem um <b>link próprio dos seus orientados</b>. Quem abrir esse link só consegue agendar com o senhor. Ele está em <b>Ferramentas</b>, com um botão para mandar no WhatsApp. Depois disso, o senhor <b>confirma ou recusa</b> cada pedido e registra o resultado da vistoria.</p></div>'
     + '<div class="card"><strong>2. Sua disponibilidade</strong><p style="margin:4px 0 0;color:var(--muted)">O sistema só oferece aos alunos os dias em que o senhor recebe vistorias: <b>' + esc(inst.dispTexto || "período completo") + "</b>. O senhor tem <b>" + (inst.total || 0) + " alunos</b> na escala. Se a disponibilidade estiver errada, avise a coordenação.</p></div>"
     + '<div class="card"><strong>3. Lembretes</strong><p style="margin:4px 0 0;color:var(--muted)">Se o senhor cadastrar um e-mail em <b>Ferramentas</b>, recebe um aviso a cada pedido novo, o convite para pôr a vistoria na agenda do celular, e um resumo às 18 h da véspera e às 7 h do dia.</p></div>'
     + '<div class="card"><strong>Regras que o sistema já aplica sozinho</strong><ul style="margin:6px 0 0;padding-left:20px;color:var(--muted)"><li>Fins de semana, 02/11, 20/11, 25/12 e a tarde de 24/12 ficam bloqueados.</li><li>O aluno não consegue marcar no dia da viagem dele.</li><li>Abaixo de 72 h, só com o seu aval, pelo pedido de encaixe.</li><li>Nada é oferecido fora da sua disponibilidade.</li></ul></div>'
-    + "</div>"
+    + "</div>" + cardLinkAlunos(inst)
     + '<button class="btn pri big" data-act="instOk" style="margin-top:14px">Entendi, abrir meus pedidos</button>';
 }
 
@@ -1247,10 +1262,40 @@ function cardVistoria(a, hoje) {
     + "</div></div>";
 }
 
+/** O link que o instrutor repassa à sua turma: quem abrir só agenda com ele. */
+function cardLinkAlunos(inst) {
+  const tok = inst && inst.tokenAlunos;
+  if (!tok) return "";
+  const link = linkBase() + "?i=" + tok;
+  const msg = "Senhores, para agendar a entrega do PNR comigo, usem este link: " + link
+    + "\n\nLeiam os termos com atenção. Antecedência mínima de 72 h, nunca no dia do voo. "
+    + "A entrega é pessoal, sem representante, e a família não acompanha a vistoria.";
+  return '<div class="sec full" style="border-color:var(--accent)">'
+    + '<div class="sec-h"><h2>Link dos seus orientados</h2><p>Mande este link para a sua turma</p></div>'
+    + '<p class="hint">Quem abrir este link só consegue agendar <b>com o senhor</b>: não precisa escolher instrutor e não consegue cair na agenda de outro.</p>'
+    + '<div class="card" style="word-break:break-all;font-size:13px" id="linkalunos">' + esc(link) + "</div>"
+    + '<div class="row-btns" style="margin-top:10px">'
+    + '<a class="btn pri" href="https://wa.me/?text=' + encodeURIComponent(msg) + '" target="_blank" rel="noopener">💬 Mandar no WhatsApp</a>'
+    + '<button class="btn" data-act="copiarEl" data-k="linkalunos">Copiar o link</button>'
+    + "</div>"
+    + '<p class="hint" style="margin:10px 0 0">Não repasse o link da <b>sua</b> tela (o que a coordenação lhe mandou): nele o aluno veria os pedidos e poderia confirmar vistorias.</p>'
+    + "</div>";
+}
+
+/** Endereço publicado do sistema, sem os parâmetros da tela atual. */
+function linkBase() {
+  try {
+    if (S.est && S.est.urlBase) return S.est.urlBase;
+    const u = String(location.href).split("?")[0].split("#")[0];
+    return u;
+  } catch (e) { return ""; }
+}
+
 function renderFerramentas(inst) {
   const insts = S.est.instrutores || [];
   const bls = (S.est.bloqueios || []).filter(b => b.instrutor === S.eu).sort((a, b) => a.data > b.data ? 1 : -1);
-  return '<div class="sec full"><div class="sec-h"><h2>Aluno esqueceu de agendar?</h2><p>Duas formas de resolver</p></div>'
+  return cardLinkAlunos(inst)
+    + '<div class="sec full"><div class="sec-h"><h2>Aluno esqueceu de agendar?</h2><p>Duas formas de resolver</p></div>'
     + '<div class="stack">'
     + '<div class="card"><strong>1. Marcar eu mesmo pelo aluno</strong>'
     + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">Para quem ligou ou falou pessoalmente. Já sai confirmado, sem a regra das 72 h.</p>'
@@ -1365,6 +1410,17 @@ function renderPainel() {
     + '<div class="heat">' + heatCels.join("") + "</div>"
     + '<p class="hint" style="margin-top:10px">Cada dia tem 6 tempos por instrutor: 3 de manhã e 3 de tarde.</p></div>'
 
+    + '<div class="sec full"><div class="sec-h"><h2>Links para reenviar</h2><p>Cada instrutor recebe só a linha dele</p></div>'
+    + '<p class="hint">Mande a <b>tela do instrutor</b> a cada instrutor, individualmente. É ele quem repassa o <b>link dos orientados</b> à turma dele. Quem abre o link de um instrutor só consegue agendar com aquele instrutor.</p>'
+    + '<table class="tbl"><thead><tr><th>Instrutor</th><th>Link dos orientados dele</th></tr></thead><tbody>'
+    + insts.map((i, k) => "<tr><td><b>" + esc(i.nome) + "</b></td>"
+      + '<td style="word-break:break-all;font-size:12px"><span id="la' + k + '">'
+      + esc(i.tokenAlunos ? linkBase() + "?i=" + i.tokenAlunos : "—") + "</span>"
+      + (i.tokenAlunos ? ' <button class="btn sm" data-act="copiarEl" data-k="la' + k + '">Copiar</button>' : "")
+      + "</td></tr>").join("")
+    + "</tbody></table>"
+    + '<p class="hint" style="margin-top:10px">Os links das <b>telas dos instrutores</b> ficam no menu <b>PNR › Ver links</b> da planilha, e não aqui, para não serem repassados por engano.</p>'
+    + "</div>"
     + '<div class="sec"><div class="sec-h"><h2>Últimos movimentos</h2></div>'
     + (ags.length ? '<ul class="evl">' + ags.slice().sort((a, b) => (b.atualizadoEm || "") > (a.atualizadoEm || "") ? 1 : -1).slice(0, 14).map(a =>
       "<li><b>" + esc(a.nomeGuerra) + "</b> · " + esc(a.instrutor) + " · " + f3(a.data)
@@ -1658,7 +1714,8 @@ document.addEventListener("click", async e => {
         nomeGuerra: S.dados.nomeGuerra, instrutor: S.dados.instrutor, data: S.dia, tempo: k,
         endereco: S.dados.endereco, viagem: S.dados.viagem, novaOM: S.dados.novaOM,
         telefone: S.dados.telefone, email: S.dados.email, checklist: S.checklist,
-        aceitou: true, encaixe: act === "enviarEncaixe", justificativa: just ? just.value : ""
+        aceitou: true, encaixe: act === "enviarEncaixe", justificativa: just ? just.value : "",
+        tokAlunos: S.tokAlunos
       });
       fecharModal();
       if (r && r.ok) { toast(act === "enviarEncaixe" ? "Pedido de encaixe enviado." : "Pedido enviado ao instrutor."); await carregar(); window.scrollTo(0, 0); }
@@ -1778,10 +1835,10 @@ document.addEventListener("click", async e => {
 
     /* --- painel --- */
     case "cobrar": modalCobrar(n); return;
-    case "copiar": {
-      const t = document.getElementById("msgcobrar");
+    case "copiar": case "copiarEl": {
+      const t = document.getElementById(act === "copiar" ? "msgcobrar" : k);
       if (t) {
-        try { await navigator.clipboard.writeText(t.textContent); toast("Texto copiado."); }
+        try { await navigator.clipboard.writeText(t.textContent); toast("Copiado."); }
         catch (x) { toast("Selecione e copie o texto à mão."); }
       }
       return;
@@ -1800,6 +1857,7 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") fecharModal(
     const loc = await new Promise(res => { try { google.script.url.getLocation(res); } catch (e) { res({ parameter: {} }); } });
     const p = loc.parameter || {};
     S.chave = p.chave || "";
+    S.tokAlunos = p.i || "";          // ?i=<chave> → link que o instrutor passou aos orientados dele
     if (p.v === "painel") S.view = "painel";
     else if (p.v === "instrutor") S.view = "instrutor";
     conn("", "Conectando à planilha…");
