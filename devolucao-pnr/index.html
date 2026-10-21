@@ -1,0 +1,1827 @@
+<title>Devolução de PNR · EsAO</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Celular primeiro: uma coluna estreita. O painel da coordenação abre em duas colunas a partir de 960px. */
+:root {
+  --bg: #f1f3ef;
+  --surface: #ffffff;
+  --surface-2: #e8ebe5;
+  --ink: #15201a;
+  --muted: #56615a;
+  --line: #d3d9d1;
+  --accent: #2c5a37;
+  --accent-ink: #ffffff;
+  --accent-soft: #dce9df;
+  --heat: #2c5a37;
+  --ok: #1a7a2a; --ok-soft: #dff1e1;
+  --warn: #8a5a00; --warn-soft: #fcefd2;
+  --bad: #b3261e; --bad-soft: #fbe2df;
+  --pend: #5b5f6b; --pend-soft: #e7e8ec;
+  --focus: #1f6feb;
+  --f-display: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --f-body: "Public Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1311; --surface: #181d1a; --surface-2: #222924; --ink: #ecf0ea; --muted: #a2ada5; --line: #303833;
+    --accent: #86c495; --accent-ink: #0d1a10; --accent-soft: #23382a; --heat: #86c495;
+    --ok: #6fd07c; --ok-soft: #1d3322; --warn: #f1bf55; --warn-soft: #3a2f14; --bad: #ff8a80; --bad-soft: #3d1f1c;
+    --pend: #b8bcc8; --pend-soft: #2a2c33; --focus: #7aa8ff;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1311; --surface: #181d1a; --surface-2: #222924; --ink: #ecf0ea; --muted: #a2ada5; --line: #303833;
+  --accent: #86c495; --accent-ink: #0d1a10; --accent-soft: #23382a; --heat: #86c495;
+  --ok: #6fd07c; --ok-soft: #1d3322; --warn: #f1bf55; --warn-soft: #3a2f14; --bad: #ff8a80; --bad-soft: #3d1f1c;
+  --pend: #b8bcc8; --pend-soft: #2a2c33; --focus: #7aa8ff;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.5 var(--f-body); margin: 0; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: .01em; }
+.num { font-variant-numeric: tabular-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* ---------- topo ---------- */
+.top { background: var(--surface); border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 20; }
+.top-in { max-width: 1240px; margin: 0 auto; padding: 10px 16px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.brand { display: flex; flex-direction: column; min-width: 0; flex: 1 1 200px; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 600; }
+.brand h1 { font-size: 21px; line-height: 1.1; font-weight: 700; }
+.views { display: flex; background: var(--surface-2); border-radius: 10px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+.views button { border: 0; background: transparent; padding: 7px 13px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.views button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.conn { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; width: 100%; }
+.conn i { width: 8px; height: 8px; border-radius: 50%; background: var(--pend); display: inline-block; flex: none; }
+.conn.on i { background: var(--ok); }
+.conn.off i { background: var(--bad); }
+.banner { max-width: 1240px; margin: 12px auto 0; padding: 0 16px; }
+.banner > div { border-radius: 10px; padding: 10px 12px; font-size: 14px; border: 1px solid var(--line); background: var(--surface); }
+.banner .w { background: var(--warn-soft); border-color: transparent; }
+.banner .b { background: var(--bad-soft); border-color: transparent; }
+
+/* ---------- blocos comuns ---------- */
+.wrap { max-width: 640px; margin: 0 auto; padding: 16px 16px 130px; }
+.wide { max-width: 1240px; }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
+.stack { display: grid; gap: 10px; }
+.q { font-size: 27px; font-weight: 700; line-height: 1.12; margin-bottom: 6px; }
+.hint { color: var(--muted); margin: 0 0 14px; max-width: 62ch; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 9px 14px; font-weight: 600; font-size: 14px; }
+.btn.sm { padding: 6px 10px; font-size: 13px; }
+.btn.pri { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--bad); }
+.btn.big { width: 100%; padding: 14px; font-size: 16px; border-radius: 12px; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+.row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.pill { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 9px; width: fit-content; white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); color: var(--ok); }
+.pill.bad { background: var(--bad-soft); color: var(--bad); }
+.pill.pend { background: var(--pend-soft); color: var(--pend); }
+.pill.warn { background: var(--warn-soft); color: var(--warn); }
+.pill.acc { background: var(--accent-soft); color: var(--accent); }
+.field { display: grid; gap: 6px; margin-top: 14px; }
+.field label, .lab { font-weight: 700; font-size: 14px; }
+.field small { color: var(--muted); font-size: 13px; }
+.field input, .field select, .field textarea { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 11px 12px; width: 100%; }
+.field textarea { min-height: 72px; resize: vertical; }
+.empty { color: var(--muted); font-size: 14px; padding: 8px 0; }
+.sep { height: 1px; background: var(--line); margin: 14px 0; }
+
+/* explicação fixa no topo de cada tela: onde estou, o que faço, o que acontece depois */
+.guide { background: var(--accent-soft); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 14px; }
+.guide b { display: block; font-family: var(--f-display); font-size: 17px; margin-bottom: 2px; }
+.guide p { margin: 4px 0 0; }
+.guide .after { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+/* etapas do aluno */
+.steps { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-bottom: 16px; }
+.steps button { border: 0; background: none; padding: 0; text-align: left; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.steps button:disabled { cursor: default; }
+.steps .bar { height: 4px; border-radius: 2px; background: var(--line); }
+.steps .on .bar, .steps .done .bar { background: var(--accent); }
+.steps .lbl { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.steps .on .lbl { color: var(--ink); font-weight: 700; }
+.stepn { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+
+/* lista de opções grandes */
+.opts { display: grid; gap: 8px; }
+.opt { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; text-align: left; display: grid; grid-template-columns: 22px 1fr; gap: 2px 10px; align-items: start; width: 100%; }
+.opt .radio { width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--muted); margin-top: 2px; display: grid; place-items: center; }
+.opt[aria-checked="true"] { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent) inset; }
+.opt[aria-checked="true"] .radio { border-color: var(--accent); }
+.opt[aria-checked="true"] .radio::after { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); }
+.opt strong { font-size: 16px; }
+.opt small, .opt .sub { grid-column: 2; color: var(--muted); font-size: 13px; }
+.opt .tags { grid-column: 2; display: flex; gap: 6px; flex-wrap: wrap; margin-top: 4px; }
+
+/* caixas de marcar */
+.chk { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; text-align: left; display: grid; grid-template-columns: 24px 1fr; gap: 2px 10px; align-items: start; width: 100%; }
+.chk .box { width: 22px; height: 22px; border-radius: 6px; border: 2px solid var(--muted); display: grid; place-items: center; font-weight: 800; font-size: 15px; color: transparent; margin-top: 1px; }
+.chk[aria-checked="true"] { border-color: var(--accent); }
+.chk[aria-checked="true"] .box { border-color: var(--accent); background: var(--accent); color: var(--accent-ink); }
+.chk strong { font-size: 15px; font-weight: 700; }
+.chk .sub { grid-column: 2; color: var(--muted); font-size: 13px; }
+.chk.crit { border-left: 4px solid var(--bad); }
+
+/* termos */
+.termo { max-height: 46vh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--surface); font-size: 14px; }
+.termo h3 { font-size: 17px; margin: 14px 0 4px; font-family: var(--f-body); font-weight: 700; }
+.termo h3:first-child { margin-top: 0; }
+.termo p, .termo li { margin: 4px 0; }
+.termo ul { padding-left: 20px; margin: 4px 0; }
+.termo .crit { background: var(--bad-soft); border-radius: 8px; padding: 8px 10px; margin: 8px 0; }
+.scrollmark { font-size: 13px; color: var(--muted); margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+.scrollmark.done { color: var(--ok); font-weight: 600; }
+
+/* "como fazer" expansível */
+.howto { grid-column: 1 / -1; margin-top: 8px; background: var(--surface-2); border-radius: 10px; padding: 10px 12px; font-size: 13px; }
+.howto ol, .howto ul { padding-left: 18px; margin: 4px 0; }
+.howto a { color: var(--focus); }
+.more { grid-column: 2; justify-self: start; border: 0; background: none; color: var(--accent); font-weight: 700; font-size: 13px; padding: 4px 0; text-decoration: underline; }
+
+/* progresso do checklist */
+.prog { background: var(--surface-2); border-radius: 999px; height: 10px; overflow: hidden; margin: 6px 0 14px; }
+.prog i { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+
+/* calendário */
+.mtabs { display: grid; grid-auto-flow: column; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 10px; }
+.mtabs button { border: 0; background: transparent; padding: 8px 4px; border-radius: 8px; font-weight: 600; font-size: 14px; color: var(--muted); }
+.mtabs button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgb(0 0 0 / .12); }
+.wk, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.wk { margin: 12px 0 4px; }
+.wk span { font-size: 11px; text-align: center; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.day { position: relative; border: 1px solid transparent; background: var(--surface); border-radius: 8px; min-height: 52px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-weight: 600; font-variant-numeric: tabular-nums; font-size: 15px; padding: 2px; }
+.day.blank { background: transparent; }
+.day .dn { line-height: 1; }
+.day .vg { font-size: 10px; font-weight: 700; line-height: 1; }
+.day.livre { background: var(--ok-soft); color: var(--ok); border-color: color-mix(in srgb, var(--ok) 35%, transparent); }
+.day.curto { background: var(--warn-soft); color: var(--warn); border-color: color-mix(in srgb, var(--warn) 35%, transparent); }
+.day.nao { background: var(--surface-2); color: var(--muted); }
+.day.cheio { background: var(--pend-soft); color: var(--pend); }
+.day.sel { outline: 3px solid var(--ink); outline-offset: -1px; z-index: 1; }
+.day.ideal::after { content: ""; position: absolute; top: 3px; right: 4px; width: 6px; height: 6px; border-radius: 50%; background: var(--ok); }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.legend span { display: inline-flex; gap: 5px; align-items: center; }
+.legend i { width: 14px; height: 12px; border-radius: 3px; display: inline-block; border: 1px solid var(--line); }
+
+/* lista de tempos do dia escolhido */
+.slots { display: grid; gap: 8px; margin-top: 14px; }
+.slot { border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 12px 14px; text-align: left; display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; width: 100%; }
+.slot .h { font-family: var(--f-display); font-size: 20px; font-weight: 700; }
+.slot .why { grid-column: 1 / -1; font-size: 13px; color: var(--muted); }
+.slot.livre { border-color: color-mix(in srgb, var(--ok) 45%, transparent); }
+.slot.off { background: var(--surface-2); }
+.turno-h { font-size: 12px; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); font-weight: 700; margin-top: 10px; }
+
+/* cartão do próximo passo */
+.next { border: 2px solid var(--accent); border-radius: 14px; padding: 14px; background: var(--surface); }
+.next.okb { border-color: var(--ok); }
+.next.badb { border-color: var(--bad); }
+.next.warnb { border-color: var(--warn); }
+.next .big { font-family: var(--f-display); font-size: 25px; font-weight: 700; line-height: 1.1; }
+.next .when { font-family: var(--f-display); font-size: 21px; font-weight: 700; margin-top: 4px; }
+.next dl { margin: 10px 0 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; font-size: 14px; }
+.next dt { color: var(--muted); }
+.next dd { margin: 0; }
+.leve { background: var(--warn-soft); border-radius: 10px; padding: 10px 12px; margin-top: 12px; font-size: 14px; }
+.leve ul { margin: 4px 0 0; padding-left: 20px; }
+.countdown { display: flex; gap: 8px; margin-top: 12px; }
+.countdown div { flex: 1; background: var(--surface-2); border-radius: 10px; padding: 8px 10px; text-align: center; }
+.countdown b { display: block; font-family: var(--f-display); font-size: 26px; line-height: 1; }
+.countdown span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+/* painel / instrutor */
+.kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+.kpi .v { font-family: var(--f-display); font-size: 32px; font-weight: 700; line-height: 1; }
+.kpi .l { font-size: 13px; color: var(--muted); }
+.kpi.ok .v { color: var(--ok); } .kpi.bad .v { color: var(--bad); } .kpi.pend .v { color: var(--pend); } .kpi.warn .v { color: var(--warn); }
+.sec { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+.sec-h { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.sec-h h2 { font-size: 21px; font-weight: 700; }
+.sec-h p { margin: 0; color: var(--muted); font-size: 13px; }
+.dash { max-width: 1240px; margin: 0 auto; padding: 16px 16px 60px; display: grid; gap: 14px; }
+.ped { border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 8px; }
+.ped.urg { border-color: var(--warn); background: var(--warn-soft); }
+.ped h3 { font-family: var(--f-body); font-size: 16px; font-weight: 700; }
+.ped dl { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 2px 10px; font-size: 13px; }
+.ped dt { color: var(--muted); }
+.ped dd { margin: 0; }
+.ped .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.todo { background: var(--accent-soft); border-radius: 8px; padding: 8px 10px; font-size: 13px; font-weight: 600; }
+.tbl { width: 100%; border-collapse: collapse; font-size: 14px; }
+.tbl th, .tbl td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+.tbl th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.tbl .num { text-align: right; font-variant-numeric: tabular-nums; }
+.bar2 { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; min-width: 60px; }
+.bar2 i { display: block; height: 100%; background: var(--accent); }
+.alerta { border-radius: 10px; padding: 10px 12px; font-size: 14px; display: grid; gap: 8px; margin-bottom: 8px; }
+.alerta.w { background: var(--warn-soft); }
+.alerta.b { background: var(--bad-soft); }
+.alerta b { font-weight: 700; }
+.heat { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
+.heat div { border-radius: 6px; min-height: 44px; padding: 3px 4px; font-size: 11px; background: color-mix(in srgb, var(--heat) var(--h, 0%), var(--surface)); border: 1px solid var(--line); }
+.heat div.hot { color: var(--accent-ink); }
+.heat b { display: block; font-family: var(--f-display); font-size: 16px; }
+.evl { list-style: none; margin: 0; padding: 0; }
+.evl li { padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.evl li:last-child { border-bottom: 0; }
+.evl small { color: var(--muted); display: block; }
+
+/* roteiro de vistoria */
+.rot { display: grid; gap: 6px; }
+.rot .it { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; }
+.rot .it strong { font-size: 14px; font-weight: 700; }
+.rot .it small { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
+.rot .it button { border: 1px solid var(--line); background: var(--surface); border-radius: 8px; padding: 6px 10px; font-weight: 700; font-size: 14px; }
+.rot .it .y[aria-pressed="true"] { background: var(--ok-soft); color: var(--ok); border-color: var(--ok); }
+.rot .it .n[aria-pressed="true"] { background: var(--bad-soft); color: var(--bad); border-color: var(--bad); }
+
+/* ajuda, modal, toast */
+.helpbtn { position: fixed; right: 14px; bottom: calc(86px + env(safe-area-inset-bottom, 0px)); z-index: 18; border: 1px solid var(--line); background: var(--surface); border-radius: 999px; padding: 10px 16px; font-weight: 700; box-shadow: 0 2px 10px rgb(0 0 0 / .12); }
+.navbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px)); z-index: 19; }
+.navbar-in { max-width: 640px; margin: 0 auto; display: flex; gap: 10px; }
+.navbar .btn { flex: 1; padding: 13px; font-size: 16px; }
+.navbar .btn.pri { flex: 2; }
+.modal { position: fixed; inset: 0; background: rgb(0 0 0 / .45); z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 12px; }
+.modal .card { width: 100%; max-width: 580px; max-height: 88vh; overflow: auto; }
+.modal h2 { font-size: 22px; margin-bottom: 8px; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(92px + env(safe-area-inset-bottom, 0px)); background: var(--ink); color: var(--bg); padding: 11px 16px; border-radius: 10px; font-weight: 600; z-index: 60; max-width: calc(100% - 32px); }
+.faq { display: grid; gap: 6px; }
+.faq details { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; background: var(--surface); }
+.faq summary { font-weight: 700; cursor: pointer; font-size: 14px; }
+.faq p { margin: 6px 0 0; font-size: 14px; }
+
+@media (min-width: 640px) {
+  .kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .day { min-height: 62px; }
+  .modal { align-items: center; }
+}
+@media (min-width: 960px) {
+  .dash { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: start; }
+  .dash .full { grid-column: 1 / -1; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .btn, .opt, .chk, .day, .slot { transition: background-color .12s, box-shadow .12s, border-color .12s; }
+}
+</style>
+
+<header class="top">
+  <div class="top-in">
+    <div class="brand">
+      <span class="eyebrow" id="eyebrow">EsAO · Devolução de PNR 2026</span>
+      <h1 id="h1">Agendar a entrega do PNR</h1>
+    </div>
+    <div class="views" id="views" role="group" aria-label="Escolher tela" hidden></div>
+    <div class="conn" id="conn"><i></i><span>Conectando…</span></div>
+  </div>
+</header>
+<div class="banner" id="banner" hidden></div>
+<main id="app"><div class="wrap"><p class="empty">Carregando…</p></div></main>
+<div id="layer"></div>
+
+<script>
+"use strict";
+
+/* ===================== textos fixos ===================== */
+
+const TEMPOS_PADRAO = [
+  { k: "M1", ini: "08:00", fim: "09:15", turno: "manha" },
+  { k: "M2", ini: "09:30", fim: "10:45", turno: "manha" },
+  { k: "M3", ini: "11:00", fim: "12:15", turno: "manha" },
+  { k: "T1", ini: "13:30", fim: "14:45", turno: "tarde" },
+  { k: "T2", ini: "15:00", fim: "16:15", turno: "tarde" },
+  { k: "T3", ini: "16:30", fim: "17:45", turno: "tarde" }
+];
+
+const STEPS = ["Como funciona", "Quem é você", "Termos", "Checklist", "Seu PNR", "Horário"];
+
+/* Os 3 pontos que mais geram problema: ficam em caixa separada e exigem aceite individual. */
+const CRITICOS = [
+  { k: "pessoal", t: "A entrega é só minha, pessoalmente", d: "Não posso mandar esposa, parente nem companheiro de turma. Não posso viajar deixando a entrega para outro militar." },
+  { k: "prazo", t: "Não vou marcar no dia da viagem", d: "Vou marcar 1 a 3 dias antes, de preferência 2 ou 3. Se houver pendência, a chave não é recebida até eu corrigir." },
+  { k: "sozinho", t: "Vou estar sozinho na vistoria", d: "A vistoria é feita apenas com o militar responsável. A família não pode acompanhar." }
+];
+
+const TERMO_HTML = `
+<h3>Termo de Ciência e Compromisso para devolução de PNR</h3>
+<p>Declaro estar ciente de que a desocupação do Próprio Nacional Residencial é regida pelas Instruções Gerais para a Administração dos PNR do Exército (Portaria C Ex nº 1.846, de 4 de outubro de 2022) e pelas determinações desta OM, e me comprometo com o seguinte.</p>
+
+<h3>1. Estado do imóvel</h3>
+<p>A desocupação será precedida de <b>vistoria</b>, que resultará no <b>Termo de Desocupação de PNR</b>. O imóvel será comparado com o <b>Termo de Recebimento/Vistoria Inicial</b> que preenchi na ocupação. Devo entregá-lo:</p>
+<ul>
+  <li><b>pintado</b> e <b>faxinado</b>, sem pertences pessoais nem entulho;</li>
+  <li>com <b>iluminação completa</b>: lâmpadas, luminárias, interruptores e tomadas funcionando;</li>
+  <li>com os equipamentos previstos no termo inicial <b>instalados e Em Condições De uso</b>, ou seja, em boas condições e funcionando, a exemplo do ar-condicionado;</li>
+  <li>com louças, metais, portas, janelas, fechaduras e demais itens em perfeito estado;</li>
+  <li>com <b>todas as chaves e cópias</b>, além de controles e tags de acesso, se houver.</li>
+</ul>
+
+<h3>2. Débitos e concessionárias</h3>
+<p>Devo comprovar a <b>quitação de todos os débitos referentes ao PNR</b>, incluindo o <b>encerramento da conta e a quitação de débitos na Light</b> (energia) e <b>na Naturgy</b> (gás), apresentando os comprovantes no dia da vistoria.</p>
+
+<h3>3. Entrega pessoal</h3>
+<div class="crit"><p>A entrega será feita <b>exclusivamente por mim, militar responsável pelo PNR</b>. Não serão aceitos parentes, cônjuges ou companheiros de turma como representantes. Portanto, <b>não poderei viajar, sair de férias ou me ausentar</b> deixando essa responsabilidade a terceiros.</p></div>
+
+<h3>4. Presença apenas do militar</h3>
+<div class="crit"><p>A vistoria será acompanhada <b>somente por mim</b>. Familiares não poderão acompanhar a entrega do PNR.</p></div>
+
+<h3>5. Possibilidade de pendências e prazo de segurança</h3>
+<div class="crit"><p>Estou ciente de que se trata de uma <b>verificação</b>, que pode apontar pendências como falta de pintura, item faltante ou material danificado. <b>As chaves não serão recebidas enquanto houver pendência.</b> Por isso devo agendar a vistoria com <b>1 a 3 dias de antecedência em relação à data da viagem</b>, e <b>nunca no mesmo dia do embarque</b>, para ter tempo de fazer as correções.</p></div>
+
+<h3>6. Danos</h3>
+<p>Danos ao imóvel, às instalações ou ao mobiliário que não forem sanados poderão ser <b>cobrados de mim</b>, nos termos das Instruções Gerais.</p>
+
+<h3>7. Responsabilidade</h3>
+<p>A entrega do PNR em condições adequadas e com todas as pendências sanadas é <b>responsabilidade exclusiva minha, militar ocupante</b>.</p>
+
+<h3>8. Comparecimento</h3>
+<p>Comprometo-me a comparecer no dia e na hora agendados. Se não puder, cancelo ou remarco pelo sistema com antecedência, para liberar o horário a outro companheiro.</p>
+`;
+
+const CHECK = [
+  {
+    k: "pintura", t: "Pintura em ordem",
+    d: "Paredes e tetos pintados, sem manchas, furos ou remendos aparentes.",
+    como: "<p>Compare com o <b>Termo de Recebimento</b> que você assinou ao ocupar o PNR: o imóvel deve voltar no mesmo estado.</p><ul><li>Tape e lixe os furos de quadros, suportes e prateleiras antes de pintar.</li><li>Use a mesma cor e o mesmo acabamento do original.</li><li>Não esqueça teto de banheiro e cozinha, onde costuma haver mofo.</li></ul>"
+  },
+  {
+    k: "faxina", t: "Faxina feita e imóvel vazio",
+    d: "Sem pertences pessoais nem entulho, inclusive área de serviço e armários.",
+    como: "<p>Vazio quer dizer vazio: nada de móveis velhos, tinta sobrando, caixas ou lixo na área de serviço.</p><ul><li>Limpe azulejos, rejunte, box, vidros e ralos.</li><li>Confira o alto dos armários e o quadro de luz.</li><li>Retire o entulho do condomínio, e não só do apartamento.</li></ul>"
+  },
+  {
+    k: "iluminacao", t: "Lâmpadas, tomadas e interruptores",
+    d: "Tudo instalado e funcionando, sem fio solto nem espelho faltando.",
+    como: "<p>Teste um por um, acendendo e apagando.</p><ul><li>Reponha todas as lâmpadas queimadas, inclusive de área de serviço, banheiro e varanda.</li><li>Recoloque os espelhos (tampas) de tomadas e interruptores.</li><li>Se tirou luminária ou chuveiro, devolva o item original ou um equivalente, sem deixar fio exposto.</li></ul>"
+  },
+  {
+    k: "ar", t: "Ar-condicionado instalado e Em Condições De uso",
+    d: "Instalado no lugar, ligando e gelando.",
+    como: "<p><b>Ligue o aparelho antes da vistoria</b> e confira se está gelando de verdade.</p><ul><li>Se você retirou o aparelho, ele deve estar reinstalado antes da entrega.</li><li>Limpe os filtros e confira se não há vazamento de água.</li><li>Deixe o controle junto das chaves.</li></ul>"
+  },
+  {
+    k: "hidro", t: "Louças, metais, portas e janelas",
+    d: "Sem vazamento, sem trinco quebrado, sem vidro rachado.",
+    como: "<ul><li>Abra todas as torneiras e dê descarga em todos os vasos.</li><li>Teste fechaduras, trincos e maçanetas de todas as portas e janelas.</li><li>Troque o que estiver rachado, entortado ou faltando.</li></ul>"
+  },
+  {
+    k: "light", t: "Light: conta encerrada e débitos quitados",
+    d: "Leve o comprovante no dia da vistoria.",
+    como: "<p>Peça o <b>encerramento da conta</b> (desligamento) no seu nome e quite o que estiver em aberto.</p><ol><li>Agência virtual da Light, aplicativo ou telefone.</li><li>Peça o encerramento informando a data da sua saída.</li><li>Pague a fatura final e <b>guarde o comprovante</b>, impresso ou no celular.</li></ol><p>Sem o comprovante, a vistoria pode ficar pendente.</p>"
+  },
+  {
+    k: "naturgy", t: "Naturgy: conta encerrada e débitos quitados",
+    d: "Leve o comprovante no dia da vistoria.",
+    como: "<p>Mesmo procedimento do gás.</p><ol><li>Atendimento da Naturgy, pelo aplicativo, site ou telefone.</li><li>Peça o encerramento da conta e quite as faturas.</li><li><b>Guarde o comprovante</b> para apresentar ao instrutor.</li></ol>"
+  },
+  {
+    k: "chaves", t: "Todas as chaves, cópias e controles",
+    d: "Inclusive as cópias que você fez, controles de portão e tags.",
+    como: "<p>Junte tudo num chaveiro só, para não esquecer nada no dia.</p><ul><li>Chaves de porta, portão, caixa de correio e área de serviço.</li><li><b>Todas as cópias</b> que você mandou fazer.</li><li>Controles de portão, tags de acesso e controle do ar-condicionado.</li></ul>"
+  },
+  {
+    k: "termo", t: "Termo de Recebimento em mãos",
+    d: "É o documento que você assinou ao ocupar o PNR, usado na comparação.",
+    como: "<p>A vistoria compara o estado atual com o <b>Termo de Recebimento/Vistoria Inicial</b>. Leve uma cópia para resolver qualquer dúvida na hora.</p><p>Não acha o seu? Procure a Seção de PNR antes da vistoria.</p>"
+  }
+];
+
+/* Roteiro que o instrutor segue no celular, cômodo por cômodo, igual para todos. */
+const ROTEIRO = [
+  { k: "pintura", t: "Pintura de paredes e tetos", d: "Compare com o Termo de Recebimento. Sem furos, manchas ou remendo aparente." },
+  { k: "faxina", t: "Faxina e imóvel vazio", d: "Sem pertences nem entulho, inclusive área de serviço e alto dos armários." },
+  { k: "iluminacao", t: "Lâmpadas, tomadas e interruptores", d: "Acenda e apague tudo. Espelhos no lugar, sem fio exposto." },
+  { k: "ar", t: "Ar-condicionado Em Condições De uso", d: "Ligue e confira se gela. Controle presente." },
+  { k: "hidro", t: "Louças, metais e hidráulica", d: "Torneiras, descargas, vazamentos e ralos." },
+  { k: "esquadrias", t: "Portas, janelas e fechaduras", d: "Trincos, maçanetas, vidros e persianas." },
+  { k: "light", t: "Comprovante da Light", d: "Conta encerrada e débitos quitados." },
+  { k: "naturgy", t: "Comprovante da Naturgy", d: "Conta encerrada e débitos quitados." },
+  { k: "chaves", t: "Chaves, cópias e controles", d: "Confira a quantidade contra o termo inicial." },
+  { k: "militar", t: "Entrega pessoal do responsável", d: "É o próprio militar, sem representante e sem família acompanhando." }
+];
+
+const FAQ = [
+  ["Minha esposa pode entregar as chaves para mim?", "Não. A entrega é pessoal, feita pelo militar responsável pelo PNR. Parente, cônjuge e companheiro de turma não são aceitos."],
+  ["Posso agendar no mesmo dia do meu voo?", "Não. O sistema bloqueia o dia da viagem. Se aparecer alguma pendência, a chave não é recebida, e você não terá tempo de corrigir. Marque 2 ou 3 dias antes."],
+  ["Minha família pode acompanhar a vistoria?", "Não. A vistoria é feita apenas com o militar responsável."],
+  ["Esqueci de agendar e falta pouco tempo. E agora?", "Escolha o horário que você precisa e use o botão de pedido de encaixe. Escreva a justificativa. O seu instrutor decide se aprova."],
+  ["E se o instrutor achar alguma pendência?", "A chave não é recebida naquele dia. Você recebe a lista exata do que corrigir e marca uma nova vistoria pelo mesmo link, já com prioridade."],
+  ["Escolhi o instrutor errado. Perdi o pedido?", "Não. O instrutor transfere o seu pedido para o responsável certo, e você é avisado."],
+  ["Preciso de senha ou cadastro?", "Não. Basta o link. Você se identifica pelo nome de guerra, e é por ele que o sistema encontra o seu agendamento depois."],
+  ["Posso cancelar ou remarcar?", "Sim, pelo mesmo link, digitando o seu nome de guerra. Faça isso o quanto antes, para liberar o horário a outro companheiro."],
+  ["O que preciso levar no dia?", "Todas as chaves, cópias e controles; os comprovantes da Light e da Naturgy; e uma cópia do Termo de Recebimento. E compareça sozinho."]
+];
+
+const WD = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+const WD_CURTO = ["D", "S", "T", "Q", "Q", "S", "S"];
+const MES_NOME = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+const MES_CURTO = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+/* ===================== datas ===================== */
+
+const dn = s => { const [y, m, d] = String(s).slice(0, 10).split("-").map(Number); return Date.UTC(y, m - 1, d) / 864e5; };
+const ds = n => new Date(n * 864e5).toISOString().slice(0, 10);
+const wd = s => new Date(dn(s) * 864e5).getUTCDay();
+const f2 = s => String(s).slice(8, 10) + "/" + String(s).slice(5, 7);
+const f3 = s => f2(s) + "/" + String(s).slice(0, 4);
+const fw = s => f2(s) + " (" + WD[wd(s)] + ")";
+const difDias = (a, b) => dn(b) - dn(a);
+const mesDe = s => +String(s).slice(5, 7) - 1;
+const anoDe = s => +String(s).slice(0, 4);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const horaDe = (data, hhmm) => new Date(String(data).slice(0, 10) + "T" + hhmm + ":00-03:00");
+
+/* ===================== estado ===================== */
+
+const S = {
+  papel: "aluno", eu: "", chave: "", view: "", est: null, carregando: true,
+  step: 0, mes: null, dia: null,
+  dados: { nomeGuerra: "", instrutor: "", endereco: "", viagem: "", novaOM: "", telefone: "", email: "" },
+  aceites: {}, aceiteGeral: false, rolouTermo: false,
+  checklist: {}, abertos: {},
+  meu: null, erro: "", enviando: false,
+  abaInst: "pedidos", roteiro: {}, roteiroId: null,
+  mostrarComoFunciona: true
+};
+
+const LS = "pnr-esao";
+function salvarLocal() {
+  try {
+    localStorage.setItem(LS, JSON.stringify({
+      dados: S.dados, checklist: S.checklist, aceites: S.aceites, aceiteGeral: S.aceiteGeral
+    }));
+  } catch (e) {}
+}
+function lerLocal() {
+  try {
+    const o = JSON.parse(localStorage.getItem(LS) || "{}");
+    if (o.dados) Object.assign(S.dados, o.dados);
+    if (o.checklist) S.checklist = o.checklist;
+    if (o.aceites) S.aceites = o.aceites;
+    S.aceiteGeral = !!o.aceiteGeral;
+  } catch (e) {}
+}
+
+const conn = (cls, txt) => {
+  const el = document.getElementById("conn");
+  el.className = "conn " + cls;
+  el.querySelector("span").textContent = txt;
+};
+function banner(html, cls) {
+  const b = document.getElementById("banner");
+  if (!html) { b.hidden = true; b.innerHTML = ""; return; }
+  b.hidden = false;
+  b.innerHTML = '<div class="' + (cls || "") + '">' + html + "</div>";
+}
+function toast(msg) {
+  const old = document.getElementById("toast");
+  if (old) old.remove();
+  const d = document.createElement("div");
+  d.id = "toast"; d.className = "toast"; d.setAttribute("role", "status"); d.textContent = msg;
+  document.body.appendChild(d);
+  setTimeout(() => d.remove(), 4200);
+}
+
+/* ===================== base de dados ===================== */
+
+let API = null;
+
+/** Google Apps Script: as funções do Code.gs. */
+function gasAPI() {
+  const call = (fn, ...args) => new Promise((res, rej) =>
+    google.script.run.withSuccessHandler(res).withFailureHandler(e => rej(new Error(e && e.message ? e.message : String(e))))[fn](...args));
+  return { kind: "gas", call };
+}
+
+/** Demonstração: arquivo aberto direto no navegador. Os dados ficam só neste aparelho. */
+function demoAPI() {
+  const K = "pnr-esao-demo";
+  const ler = () => { try { return JSON.parse(localStorage.getItem(K) || "{}"); } catch (e) { return {}; } };
+  const gravar = o => { try { localStorage.setItem(K, JSON.stringify(o)); } catch (e) {} };
+  const INSTS = [
+    ["Maj Modesto", 10, "Até 04/12"], ["Maj Andrews", 10, "Até 18/12"], ["Maj Pimenta", 1, "09/11 a 13/11"],
+    ["Maj Calderaro", 10, "Até 19/11"], ["Maj Cesse", 11, "Até 04/12"], ["Cap Dantas", 10, "13/11 a 26/11"],
+    ["Cap Loan", 11, "Até 04/12"], ["Cap Santana", 11, "Até 11/12"], ["Cap Uerlei Moreira", 11, "Até 18/12"],
+    ["Cap Cavalcanti", 11, "Até 29/12"], ["Cap Marcello", 11, "Até 19/11; 30/11 a 22/12"]
+  ];
+  const hoje = new Date().toISOString().slice(0, 10);
+  const cfg = { inicio: hoje > "2026-10-21" ? hoje : "2026-10-21", fim: "2026-12-30", horasMinimas: 72 };
+  const janelas = texto => {
+    const data = s => {
+      const m = String(s).match(/(\d{1,2})\s*\/\s*(\d{1,2})/);
+      if (!m) return null;
+      const d = ("0" + m[1]).slice(-2), mes = ("0" + m[2]).slice(-2);
+      return (+mes >= 10 ? "2026" : "2027") + "-" + mes + "-" + d;
+    };
+    const out = [];
+    String(texto).split(/;|\be\b(?![^\d]*a\b)/i).forEach(p => {
+      p = p.trim(); if (!p) return;
+      const fx = p.match(/(\d{1,2}\s*\/\s*\d{1,2})\s*(?:a|até|-)\s*(\d{1,2}\s*\/\s*\d{1,2})/i);
+      if (fx) { out.push({ ini: data(fx[1]), fim: data(fx[2]) }); return; }
+      if (/at[eé]/i.test(p)) { const f = data(p); if (f) out.push({ ini: cfg.inicio, fim: f }); return; }
+      const u = data(p); if (u) out.push({ ini: u, fim: u });
+    });
+    return out.filter(r => r.ini && r.fim && r.ini <= r.fim)
+      .map(r => ({ ini: r.ini < cfg.inicio ? cfg.inicio : r.ini, fim: r.fim > cfg.fim ? cfg.fim : r.fim }))
+      .filter(r => r.ini <= r.fim);
+  };
+  const base = () => {
+    const db = ler();
+    return {
+      papel: db.papel || "aluno", eu: db.eu || "", hoje, agora: new Date().toISOString(), termoVersao: "1.0",
+      cfg, tempos: TEMPOS_PADRAO,
+      feriados: {
+        "2026-11-02": { tipo: "dia", n: "Finados" },
+        "2026-11-20": { tipo: "dia", n: "Dia Nacional de Zumbi e da Consciência Negra" },
+        "2026-12-24": { tipo: "tarde", n: "Véspera de Natal (ponto facultativo à tarde)" },
+        "2026-12-25": { tipo: "dia", n: "Natal" }
+      },
+      instrutores: INSTS.map(i => ({ nome: i[0], dispTexto: i[2], janelas: janelas(i[2]), total: i[1], temEmail: false })),
+      bloqueios: db.bloqueios || [],
+      ags: db.ags || []
+    };
+  };
+  return {
+    kind: "demo",
+    async call(fn, ...args) {
+      const db = ler(); const b = base();
+      if (fn === "estado") {
+        const nome = args[1];
+        const out = Object.assign({}, b);
+        out.ocupados = b.ags.filter(a => ["solicitado", "encaixe", "confirmado"].includes(a.situacao))
+          .map(a => ({ instrutor: a.instrutor, data: a.data, tempo: a.tempo, nomeGuerra: a.nomeGuerra, situacao: a.situacao, id: a.id }));
+        out.agendamentos = b.ags;
+        if (nome) out.meus = b.ags.filter(a => normNome(a.nomeGuerra) === normNome(nome));
+        out.excecoes = []; out.excecoesMinhas = [];
+        delete out.ags;
+        return out;
+      }
+      if (fn === "aceitarTermos") return { ok: true, versao: "1.0" };
+      if (fn === "solicitar") {
+        const d = args[0];
+        const erro = motivo(b, d.instrutor, d.data, d.tempo, { viagem: d.viagem, excecao: !!d.encaixe }).txt;
+        if (erro) return { ok: false, erro };
+        const a = Object.assign({}, d, {
+          id: Math.random().toString(36).slice(2, 10),
+          situacao: d.encaixe ? "encaixe" : "solicitado",
+          criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString(),
+          pendencias: [], historico: [{ quando: new Date().toISOString(), texto: "Solicitada pelo aluno." }]
+        });
+        db.ags = (db.ags || []).concat([a]); gravar(db);
+        return { ok: true, agendamento: a };
+      }
+      const acha = id => (db.ags || []).find(a => a.id === id);
+      if (fn === "cancelar") {
+        const a = acha(args[0]); if (!a) return { ok: false, erro: "Não encontrado." };
+        a.situacao = "cancelado"; a.atualizadoEm = new Date().toISOString(); gravar(db); return { ok: true, agendamento: a };
+      }
+      if (fn === "confirmar" || fn === "recusar" || fn === "registrarResultado" || fn === "transferir" || fn === "remarcar") {
+        const a = acha(args[1] !== undefined && fn !== "remarcar" ? args[1] : args[0]);
+        if (!a) return { ok: false, erro: "Não encontrado." };
+        if (fn === "confirmar") a.situacao = "confirmado";
+        if (fn === "recusar") { a.situacao = "recusado"; a.motivo = args[2] || ""; }
+        if (fn === "transferir") { a.instrutor = args[2]; a.situacao = "solicitado"; }
+        if (fn === "remarcar") { a.data = args[2]; a.tempo = args[3]; a.situacao = "solicitado"; }
+        if (fn === "registrarResultado") {
+          if (args[2]) { a.situacao = "entregue"; a.pendencias = []; }
+          else { a.situacao = "pendencias"; a.pendencias = args[3] || []; }
+        }
+        a.atualizadoEm = new Date().toISOString(); gravar(db); return { ok: true, agendamento: a };
+      }
+      if (fn === "bloquear") {
+        db.bloqueios = (db.bloqueios || []).concat([{ instrutor: b.eu || "TODOS", data: args[1], tempo: args[2] || "TODOS", motivo: args[3] || "" }]);
+        gravar(db); return { ok: true };
+      }
+      if (fn === "desbloquear") {
+        db.bloqueios = (db.bloqueios || []).filter(x => !(x.data === args[1] && (args[2] === "TODOS" || x.tempo === args[2])));
+        gravar(db); return { ok: true };
+      }
+      if (fn === "liberarExcecao") return { ok: true, validaAte: cfg.fim };
+      if (fn === "salvarEmail") return { ok: true };
+      if (fn === "agendarPeloInstrutor") {
+        const d = args[1];
+        const a = Object.assign({}, d, { id: Math.random().toString(36).slice(2, 10), instrutor: b.eu, situacao: "confirmado", pendencias: [], criadoEm: new Date().toISOString(), atualizadoEm: new Date().toISOString() });
+        db.ags = (db.ags || []).concat([a]); gravar(db); return { ok: true, agendamento: a };
+      }
+      return { ok: false, erro: "Função não disponível no modo demonstração." };
+    },
+    trocarPapel(papel, eu) { const db = ler(); db.papel = papel; db.eu = eu || ""; gravar(db); }
+  };
+}
+
+const normNome = s => String(s || "").trim().toUpperCase()
+  .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
+
+async function carregar(silencioso) {
+  if (!API) return;
+  try {
+    const est = await API.call("estado", S.chave, S.dados.nomeGuerra || "");
+    S.est = est;
+    S.papel = est.papel || "aluno";
+    S.eu = est.eu || "";
+    if (!S.view) S.view = S.papel === "painel" ? "painel" : S.papel === "instrutor" ? "instrutor" : "aluno";
+    if (est.chaveInvalida) banner("<b>Essa chave não vale mais.</b> Abrindo a tela do aluno. Peça o link certo à coordenação.", "w");
+    const vivos = (est.meus || []).filter(a => ["solicitado", "encaixe", "confirmado", "pendencias", "recusado"].includes(a.situacao));
+    S.meu = vivos.sort((a, b) => (b.atualizadoEm || "") > (a.atualizadoEm || "") ? 1 : -1)[0] || null;
+    if (!S.mes) S.mes = (est.cfg && est.cfg.inicio) ? String(est.cfg.inicio).slice(0, 7) : null;
+    S.carregando = false;
+    conn("on", API.kind === "demo" ? "Modo demonstração · dados só neste aparelho"
+      : S.papel === "painel" ? "Painel da coordenação" : S.papel === "instrutor" ? "Conectado · " + S.eu : "Conectado");
+    render();
+  } catch (e) {
+    S.carregando = false;
+    if (!silencioso) { conn("off", "Sem conexão"); banner("<b>Não foi possível falar com a base.</b> Verifique a internet e recarregue a página. " + esc(e.message || ""), "b"); }
+    render();
+  }
+}
+
+async function acao(fn, ...args) {
+  if (S.enviando) return null;
+  S.enviando = true; S.erro = ""; render();
+  try {
+    const r = await API.call(fn, ...args);
+    S.enviando = false;
+    if (r && r.ok === false) { S.erro = r.erro || "Não foi possível concluir."; render(); return r; }
+    return r;
+  } catch (e) {
+    S.enviando = false;
+    S.erro = e.message || "Falha na conexão. Tente de novo.";
+    render();
+    return null;
+  }
+}
+
+/* ===================== regras de disponibilidade ===================== */
+
+const tempos = () => (S.est && S.est.tempos && S.est.tempos.length ? S.est.tempos : TEMPOS_PADRAO);
+const tempoDe = k => tempos().find(t => t.k === k) || null;
+const instDe = nome => ((S.est && S.est.instrutores) || []).find(i => i.nome === nome) || null;
+
+/**
+ * Por que este tempo não pode ser marcado. Devolve {cls, txt}; txt vazio = pode.
+ * cls: livre | fds | feriado | fora | bloqueado | cheio | viagem | curto | passou | fim
+ * Mesma ordem do backend, para a tela nunca prometer o que o servidor recusa.
+ */
+function motivo(est, instrutor, data, tempoK, opts) {
+  opts = opts || {};
+  const cfg = est.cfg || {};
+  const t = (est.tempos || TEMPOS_PADRAO).find(x => x.k === tempoK);
+  if (!t) return { cls: "nao", txt: "Tempo inválido." };
+  if (data < cfg.inicio) return { cls: "passou", txt: "Essa data já passou." };
+  if (data > cfg.fim) return { cls: "fim", txt: "A campanha termina em " + f3(cfg.fim) + "." };
+
+  const d = wd(data);
+  if (d === 0 || d === 6) return { cls: "fds", txt: "Fim de semana: não há vistoria de PNR." };
+
+  const fer = (est.feriados || {})[data];
+  if (fer && fer.tipo === "dia") return { cls: "feriado", txt: fer.n + ": feriado, sem vistoria." };
+  if (fer && fer.tipo === "tarde" && t.turno === "tarde") return { cls: "feriado", txt: fer.n + ": só há vistoria pela manhã." };
+
+  const inst = (est.instrutores || []).find(i => i.nome === instrutor);
+  if (!inst) return { cls: "nao", txt: "Escolha um instrutor da lista." };
+  if (!(inst.janelas || []).some(j => data >= j.ini && data <= j.fim))
+    return { cls: "fora", txt: "O " + inst.nome + " só recebe vistorias em: " + inst.dispTexto + "." };
+
+  for (const b of (est.bloqueios || [])) {
+    if (b.data !== data) continue;
+    if (b.instrutor !== "TODOS" && b.instrutor !== instrutor) continue;
+    if (b.tempo !== "TODOS" && b.tempo !== tempoK) continue;
+    return { cls: "bloqueado", txt: "O " + inst.nome + " bloqueou esse horário" + (b.motivo ? ": " + b.motivo : ".") };
+  }
+
+  // A ocupação que o aluno recebe vem sem id; a exclusão só vale ao remarcar o próprio pedido.
+  const oc = (est.ocupados || []).find(o => o.instrutor === instrutor && o.data === data && o.tempo === tempoK
+    && !(opts.id && o.id === opts.id));
+  if (oc) return { cls: "cheio", txt: "Horário já ocupado" + (oc.nomeGuerra ? ": " + oc.nomeGuerra : ".") };
+
+  if (opts.viagem) {
+    if (data > opts.viagem) return { cls: "viagem", txt: "É depois da sua viagem (" + f3(opts.viagem) + ")." };
+    if (data === opts.viagem) return { cls: "viagem", txt: "É o dia da sua viagem. Se houver pendência, você não tem tempo de corrigir. Escolha 2 ou 3 dias antes." };
+  }
+
+  if (!opts.porInstrutor && !opts.excecao) {
+    const horas = (horaDe(data, t.ini).getTime() - Date.now()) / 36e5;
+    const min = cfg.horasMinimas == null ? 72 : cfg.horasMinimas;
+    if (horas < min) return { cls: "curto", txt: "Faltam menos de " + min + " h. Só com pedido de encaixe ao instrutor." };
+  }
+  return { cls: "livre", txt: "" };
+}
+
+/** Os 6 tempos de um dia, já com o motivo de cada um. */
+function temposDoDia(data, instrutor, opts) {
+  return tempos().map(t => {
+    const m = motivo(S.est, instrutor, data, t.k, opts);
+    return { t, cls: m.cls, txt: m.txt, livre: !m.txt };
+  });
+}
+
+/** Resumo do dia para o calendário. */
+function resumoDia(data, instrutor, opts) {
+  const lst = temposDoDia(data, instrutor, opts);
+  const livres = lst.filter(x => x.livre).length;
+  if (livres) return { cls: "livre", n: livres, txt: livres + (livres > 1 ? " tempos livres" : " tempo livre") };
+  const curto = lst.filter(x => x.cls === "curto").length;
+  if (curto) return { cls: "curto", n: curto, txt: curto + " tempo(s) só com encaixe" };
+  const cheio = lst.filter(x => x.cls === "cheio").length;
+  if (cheio === lst.length) return { cls: "cheio", n: 0, txt: "Dia cheio" };
+  return { cls: "nao", n: 0, txt: lst[0] ? lst[0].txt : "Indisponível" };
+}
+
+/** Meses com dias dentro do período da campanha. */
+function mesesDaCampanha() {
+  const cfg = (S.est && S.est.cfg) || {};
+  if (!cfg.inicio) return [];
+  const out = [];
+  let a = anoDe(cfg.inicio), m = mesDe(cfg.inicio);
+  const aF = anoDe(cfg.fim), mF = mesDe(cfg.fim);
+  while (a < aF || (a === aF && m <= mF)) {
+    out.push({ ym: a + "-" + ("0" + (m + 1)).slice(-2), nome: MES_NOME[m], curto: MES_CURTO[m] + "/" + String(a).slice(2) });
+    m++; if (m > 11) { m = 0; a++; }
+  }
+  return out;
+}
+
+function diasDoMes(ym) {
+  const [a, m] = ym.split("-").map(Number);
+  const out = [];
+  const ult = new Date(Date.UTC(a, m, 0)).getUTCDate();
+  for (let d = 1; d <= ult; d++) out.push(ym + "-" + ("0" + d).slice(-2));
+  return out;
+}
+
+/* ===================== render: moldura ===================== */
+
+const app = document.getElementById("app");
+
+function render() {
+  const h1 = document.getElementById("h1"), eb = document.getElementById("eyebrow");
+  const vs = document.getElementById("views");
+
+  if (S.papel === "painel") {
+    eb.textContent = "EsAO · Devolução de PNR 2026";
+    h1.textContent = "Painel da coordenação";
+    vs.hidden = false;
+    vs.innerHTML = [["painel", "Painel"], ["aluno", "Ver tela do aluno"]]
+      .map(([v, t]) => '<button data-act="view" data-v="' + v + '" aria-pressed="' + (S.view === v) + '">' + t + "</button>").join("");
+  } else if (S.papel === "instrutor") {
+    eb.textContent = "EsAO · Devolução de PNR 2026";
+    h1.textContent = S.eu;
+    vs.hidden = false;
+    vs.innerHTML = [["pedidos", "Pedidos"], ["hoje", "Hoje"], ["agenda", "Agenda"], ["tools", "Ferramentas"]]
+      .map(([v, t]) => '<button data-act="aba" data-v="' + v + '" aria-pressed="' + (S.abaInst === v) + '">' + t + "</button>").join("");
+  } else {
+    eb.textContent = "EsAO · Devolução de PNR 2026";
+    h1.textContent = "Agendar a entrega do PNR";
+    vs.hidden = true; vs.innerHTML = "";
+  }
+
+  if (S.carregando) { app.innerHTML = '<div class="wrap"><p class="empty">Carregando…</p></div>'; return; }
+  if (!S.est) { app.innerHTML = '<div class="wrap"><div class="card"><h2>Sem conexão com a base</h2><p>Recarregue a página. Se continuar, avise a coordenação.</p></div></div>'; return; }
+
+  if (S.view === "painel") app.innerHTML = renderPainel();
+  else if (S.view === "instrutor") app.innerHTML = renderInstrutor();
+  else app.innerHTML = renderAluno();
+
+  const el = app.querySelector("#termo-box");
+  if (el) {
+    el.addEventListener("scroll", () => {
+      if (el.scrollTop + el.clientHeight >= el.scrollHeight - 24 && !S.rolouTermo) { S.rolouTermo = true; render(); }
+    }, { passive: true });
+    if (el.scrollHeight <= el.clientHeight + 8) S.rolouTermo = true;
+  }
+}
+
+const erroBox = () => S.erro ? '<div class="alerta b"><b>Não deu para concluir</b><span>' + esc(S.erro) + "</span></div>" : "";
+
+const guia = (onde, oque, depois) =>
+  '<div class="guide"><b>' + esc(onde) + "</b><p>" + oque + "</p>"
+  + (depois ? '<p class="after">O que acontece depois: ' + depois + "</p>" : "") + "</div>";
+
+/* ===================== render: aluno ===================== */
+
+function renderAluno() {
+  // O aluno já agendado pode reabrir o checklist e voltar ao acompanhamento.
+  if (S.meu && S.verCheck) return wrapA(passoChecklist());
+  if (S.meu) return wrapA(renderStatus());
+
+  const passos = '<nav class="steps" aria-label="Etapas">' + STEPS.map((s, i) =>
+    '<button data-act="step" data-i="' + i + '" class="' + (i === S.step ? "on" : i < S.step ? "done" : "")
+    + '"' + (i > S.step ? " disabled" : "") + '><span class="bar"></span><span class="lbl">' + s + "</span></button>").join("") + "</nav>";
+
+  const corpo = [passoComoFunciona, passoQuem, passoTermos, passoChecklist, passoPNR, passoHorario][S.step]();
+  return wrapA(passos + '<p class="stepn">Passo ' + (S.step + 1) + " de " + STEPS.length + "</p>" + corpo);
+}
+
+function wrapA(html) {
+  return '<div class="wrap">' + erroBox() + html + "</div>"
+    + '<button class="helpbtn" data-act="ajuda">? Preciso de ajuda</button>';
+}
+
+/* --- passo 0: como funciona --- */
+function passoComoFunciona() {
+  const cards = [
+    ["1", "Prepare o PNR", "Pintado, faxinado, tudo funcionando, e as contas da Light e da Naturgy encerradas e quitadas."],
+    ["2", "Agende aqui", "Escolha o seu instrutor e um horário com <b>72 h ou mais</b> de antecedência, e <b>2 ou 3 dias antes da sua viagem</b>."],
+    ["3", "Aguarde a confirmação", "O seu instrutor confirma. Você vê a resposta nesta mesma tela."],
+    ["4", "Compareça sozinho", "Com todas as chaves e os comprovantes. A entrega é pessoal: sem parente, sem companheiro de turma e sem família acompanhando."]
+  ];
+  return guia("Como funciona a entrega do PNR",
+    "Leia os 4 passos abaixo. Leva menos de um minuto e evita quase todo problema.",
+    "você informa o seu nome de guerra e escolhe o seu instrutor.")
+    + '<div class="stack">' + cards.map(c =>
+      '<div class="card"><div style="display:grid;grid-template-columns:34px 1fr;gap:12px;align-items:start">'
+      + '<div style="font-family:var(--f-display);font-size:30px;font-weight:700;color:var(--accent);line-height:1">' + c[0] + "</div>"
+      + "<div><strong>" + c[1] + "</strong><p style=\"margin:4px 0 0;color:var(--muted)\">" + c[2] + "</p></div></div></div>").join("")
+    + '<div class="alerta w" style="margin-top:12px"><b>O erro mais comum</b><span>Marcar a vistoria para o mesmo dia do voo. Se o instrutor achar qualquer pendência, a chave não é recebida, e não há tempo de corrigir. Deixe 2 ou 3 dias de folga.</span></div>'
+    + '<div class="navbar"><div class="navbar-in"><button class="btn pri big" data-act="go" data-i="1">Começar o agendamento</button></div></div>';
+}
+
+/* --- passo 1: quem é você --- */
+function passoQuem() {
+  const insts = (S.est.instrutores || []);
+  const agPor = {};
+  (S.est.ocupados || []).forEach(o => { agPor[o.instrutor] = (agPor[o.instrutor] || 0) + 1; });
+  const nome = S.dados.nomeGuerra;
+
+  return guia("Quem é você",
+    "Digite o seu <b>nome de guerra</b> e toque no <b>seu instrutor responsável</b>. Não há senha nem cadastro.",
+    "você lê e aceita os termos da entrega.")
+    + '<div class="card"><div class="field" style="margin-top:0">'
+    + "<label for=\"ng\">Seu nome de guerra</label>"
+    + '<small>Escreva como você é tratado na OM, por exemplo "Souza" ou "Lima Filho". É por ele que você encontra o seu agendamento depois.</small>'
+    + '<input id="ng" type="text" data-bind="nomeGuerra" value="' + esc(nome) + '" autocomplete="off" autocapitalize="words" placeholder="Ex.: Souza">'
+    + "</div></div>"
+    + '<h2 class="q" style="margin-top:18px">Seu instrutor responsável</h2>'
+    + '<p class="hint">Se escolher o instrutor errado, não há problema: ele transfere o seu pedido para o responsável certo e você é avisado.</p>'
+    + '<div class="opts">' + insts.map(i => {
+      const n = agPor[i.nome] || 0;
+      return '<button class="opt" role="radio" data-act="inst" data-n="' + esc(i.nome) + '" aria-checked="' + (S.dados.instrutor === i.nome) + '">'
+        + '<span class="radio" aria-hidden="true"></span><strong>' + esc(i.nome) + "</strong>"
+        + '<span class="sub">Recebe vistorias: ' + esc(i.dispTexto || "período completo") + "</span>"
+        + '<span class="tags"><span class="pill pend">' + i.total + " alunos</span>"
+        + (n ? '<span class="pill acc">' + n + " já agendado(s)</span>" : "") + "</span></button>";
+    }).join("") + "</div>"
+    + nav(0, S.dados.nomeGuerra.trim().length >= 3 && S.dados.instrutor ? 2 : null,
+      S.dados.nomeGuerra.trim().length < 3 ? "Digite o seu nome de guerra" : !S.dados.instrutor ? "Escolha o seu instrutor" : "Ler os termos");
+}
+
+/* --- passo 2: termos --- */
+function passoTermos() {
+  const faltam = CRITICOS.filter(c => !S.aceites[c.k]).length + (S.aceiteGeral ? 0 : 1);
+  const podeAssinar = S.rolouTermo && faltam === 0;
+  const assinou = normNome(S.dados.assinatura || "") === normNome(S.dados.nomeGuerra) && S.dados.nomeGuerra.trim().length >= 3;
+
+  return guia("Termos da entrega do PNR",
+    "Leia o termo até o fim, marque os 3 pontos críticos e assine com o seu nome de guerra.",
+    "você confere o checklist de preparação do imóvel.")
+    + '<div class="termo" id="termo-box" tabindex="0">' + TERMO_HTML + "</div>"
+    + '<div class="scrollmark' + (S.rolouTermo ? " done" : "") + '">' + (S.rolouTermo ? "✓ Você leu o termo até o fim" : "↓ Role o texto até o fim para continuar") + "</div>"
+    + '<h2 class="q" style="margin-top:18px">Os 3 pontos que mais geram problema</h2>'
+    + '<p class="hint">Marque um por um. São os que mais causam transtorno todos os anos.</p>'
+    + '<div class="stack">' + CRITICOS.map(c =>
+      '<button class="chk crit" role="checkbox" data-act="crit" data-k="' + c.k + '" aria-checked="' + !!S.aceites[c.k] + '">'
+      + '<span class="box" aria-hidden="true">✓</span><strong>' + esc(c.t) + "</strong>"
+      + '<span class="sub">' + esc(c.d) + "</span></button>").join("")
+    + '<button class="chk" role="checkbox" data-act="geral" aria-checked="' + S.aceiteGeral + '">'
+    + '<span class="box" aria-hidden="true">✓</span><strong>Li e aceito todo o Termo de Ciência e Compromisso</strong>'
+    + '<span class="sub">Inclui pintura, faxina, iluminação, equipamentos Em Condições De uso, quitação da Light e da Naturgy, chaves e responsabilidade por danos.</span></button>'
+    + "</div>"
+    + '<div class="card" style="margin-top:14px"><div class="field" style="margin-top:0">'
+    + '<label for="assin">Assine digitando o seu nome de guerra</label>'
+    + "<small>Digite igual ao que você informou: <b>" + esc(S.dados.nomeGuerra) + "</b>. Isso fica registrado com a data e a hora.</small>"
+    + '<input id="assin" type="text" data-bind="assinatura" value="' + esc(S.dados.assinatura || "") + '" autocomplete="off" '
+    + (podeAssinar ? "" : "disabled") + ' placeholder="' + esc(S.dados.nomeGuerra) + '">'
+    + (podeAssinar ? "" : '<small style="color:var(--warn)">Role o termo até o fim e marque os 4 itens acima para liberar a assinatura.</small>')
+    + "</div></div>"
+    + nav(1, assinou ? 3 : null, !S.rolouTermo ? "Leia o termo até o fim" : faltam ? "Marque os " + faltam + " item(ns) que faltam" : !assinou ? "Assine com o seu nome de guerra" : "Aceitar e continuar");
+}
+
+/* --- passo 3: checklist --- */
+function passoChecklist() {
+  const feitos = CHECK.filter(c => S.checklist[c.k]).length;
+  const pct = Math.round(feitos / CHECK.length * 100);
+  return guia("Checklist de preparação",
+    "Marque o que já está pronto. Toque em <b>Como fazer</b> em qualquer item para ver o passo a passo.",
+    "você informa o endereço do PNR e a data da sua viagem.")
+    + "<p><b>" + feitos + " de " + CHECK.length + "</b> itens prontos</p>"
+    + '<div class="prog"><i style="width:' + pct + '%"></i></div>'
+    + (feitos < CHECK.length
+      ? '<div class="alerta w"><b>Pode agendar mesmo assim</b><span>O checklist não bloqueia o agendamento. Mas no dia da vistoria tudo precisa estar pronto, ou a chave não é recebida.</span></div>'
+      : '<div class="alerta w" style="background:var(--ok-soft)"><b>Tudo pronto</b><span>Ótimo. Guarde os comprovantes da Light e da Naturgy para apresentar no dia.</span></div>')
+    + '<div class="stack">' + CHECK.map(c =>
+      '<div class="chk" role="group" style="cursor:default">'
+      + '<button class="box" data-act="check" data-k="' + c.k + '" aria-pressed="' + !!S.checklist[c.k] + '" aria-label="Marcar: ' + esc(c.t) + '" '
+      + 'style="' + (S.checklist[c.k] ? "border-color:var(--accent);background:var(--accent);color:var(--accent-ink)" : "") + '">✓</button>'
+      + "<strong>" + esc(c.t) + "</strong>"
+      + '<span class="sub">' + esc(c.d) + "</span>"
+      + '<button class="more" data-act="howto" data-k="' + c.k + '">' + (S.abertos[c.k] ? "Ocultar" : "Como fazer") + "</button>"
+      + (S.abertos[c.k] ? '<div class="howto">' + c.como + "</div>" : "")
+      + "</div>").join("") + "</div>"
+    + (S.verCheck
+      ? '<div class="navbar"><div class="navbar-in"><button class="btn pri big" data-act="voltarStatus">Voltar ao meu agendamento</button></div></div>'
+      : nav(2, 4, "Continuar"));
+}
+
+/* --- passo 4: dados do PNR --- */
+function passoPNR() {
+  const d = S.dados;
+  const temEnd = (d.endereco || "").trim().length >= 8;
+  const temVia = !!d.viagem;
+  let avisoViagem = "";
+  if (temVia) {
+    const dias = difDias(S.est.hoje, d.viagem);
+    if (dias < 0) avisoViagem = '<div class="alerta b"><b>Data no passado</b><span>Confira a data da viagem.</span></div>';
+    else if (dias <= 1) avisoViagem = '<div class="alerta b"><b>Prazo apertado</b><span>Sua viagem é em ' + (dias === 0 ? "hoje" : "1 dia") + '. Praticamente não há folga para corrigir pendências. Procure o seu instrutor agora e peça um encaixe.</span></div>';
+    else if (dias <= 3) avisoViagem = '<div class="alerta w"><b>Atenção ao prazo</b><span>Faltam ' + dias + " dias para a viagem. Marque a vistoria o quanto antes e deixe pelo menos 1 dia de folga.</span></div>";
+  }
+  return guia("Seu PNR e sua viagem",
+    "Estes dados vão para o instrutor: ele precisa saber <b>onde</b> é a vistoria e <b>quando</b> você viaja.",
+    "você escolhe o dia e o horário da vistoria.")
+    + '<div class="card"><div class="field" style="margin-top:0">'
+    + '<label for="end">Endereço do PNR</label>'
+    + "<small>Rua ou avenida, número, bloco e apartamento. Ex.: Av. Gen. Benedito da Silveira, bloco 11, apto 204, Vila Militar.</small>"
+    + '<textarea id="end" data-bind="endereco" placeholder="Endereço completo, com bloco e apartamento">' + esc(d.endereco) + "</textarea>"
+    + "</div>"
+    + '<div class="field"><label for="via">Data da sua viagem (ou apresentação na nova OM)</label>'
+    + "<small>O sistema usa esta data para impedir que você marque a vistoria no dia do embarque.</small>"
+    + '<input id="via" type="date" data-bind="viagem" value="' + esc(d.viagem) + '" min="' + esc(S.est.hoje) + '"></div>'
+    + '<div class="field"><label for="om">Nova OM</label><small>Opcional. Ajuda a coordenação a organizar as prioridades.</small>'
+    + '<input id="om" type="text" data-bind="novaOM" value="' + esc(d.novaOM) + '" placeholder="Ex.: 1º BIS - Manaus/AM"></div>'
+    + '<div class="field"><label for="tel">Seu WhatsApp</label><small>Opcional. Para o instrutor falar com você se precisar remarcar.</small>'
+    + '<input id="tel" type="tel" data-bind="telefone" value="' + esc(d.telefone) + '" placeholder="(21) 9....."></div>'
+    + '<div class="field"><label for="mail">Seu e-mail</label><small>Opcional. Se informar, você recebe a confirmação e os avisos por e-mail.</small>'
+    + '<input id="mail" type="email" data-bind="email" value="' + esc(d.email) + '" placeholder="nome@exemplo.com"></div>'
+    + "</div>" + avisoViagem
+    + nav(3, temEnd && temVia ? 5 : null, !temEnd ? "Informe o endereço do PNR" : !temVia ? "Informe a data da viagem" : "Escolher o horário");
+}
+
+/* --- passo 5: escolher horário --- */
+function passoHorario() {
+  const inst = instDe(S.dados.instrutor);
+  if (!inst) return '<div class="alerta b"><b>Escolha um instrutor</b><span>Volte ao passo 2.</span></div>' + nav(1, null, "");
+  const opts = { viagem: S.dados.viagem };
+  const meses = mesesDaCampanha();
+  if (!S.mes || !meses.some(m => m.ym === S.mes)) S.mes = meses[0] ? meses[0].ym : null;
+
+  const dias = S.mes ? diasDoMes(S.mes) : [];
+  const primeiro = dias.length ? wd(dias[0]) : 0;
+  const cel = [];
+  for (let i = 0; i < primeiro; i++) cel.push('<span class="day blank"></span>');
+  let totalLivre = 0;
+  dias.forEach(d => {
+    const r = resumoDia(d, inst.nome, opts);
+    if (r.cls === "livre") totalLivre += r.n;
+    const dias3 = S.dados.viagem ? difDias(d, S.dados.viagem) : null;
+    const ideal = dias3 !== null && dias3 >= 2 && dias3 <= 3 && r.cls === "livre";
+    cel.push('<button class="day ' + r.cls + (S.dia === d ? " sel" : "") + (ideal ? " ideal" : "")
+      + '" data-act="dia" data-d="' + d + '" aria-label="' + f3(d) + ": " + esc(r.txt) + '">'
+      + '<span class="dn">' + (+d.slice(8, 10)) + "</span>"
+      + (r.n ? '<span class="vg">' + r.n + "</span>" : "") + "</button>");
+  });
+
+  const livresNaJanela = inst.janelas.map(j => f3(j.ini) + " a " + f3(j.fim)).join(" e ");
+
+  let detalhe = "";
+  if (S.dia) {
+    const lst = temposDoDia(S.dia, inst.nome, opts);
+    const dias3 = S.dados.viagem ? difDias(S.dia, S.dados.viagem) : null;
+    let aviso = "";
+    if (dias3 === 1) aviso = '<div class="alerta w"><b>Só 1 dia antes da viagem</b><span>Dá para marcar, mas se houver pendência o prazo é curtíssimo. Se puder, escolha 2 ou 3 dias antes.</span></div>';
+    else if (dias3 !== null && dias3 >= 2 && dias3 <= 3) aviso = '<div class="alerta w" style="background:var(--ok-soft)"><b>Prazo ideal</b><span>' + dias3 + " dias antes da sua viagem. Se aparecer pendência, você tem tempo de corrigir.</span></div>";
+    const bloco = turno => '<p class="turno-h">' + (turno === "manha" ? "Manhã" : "Tarde") + "</p>"
+      + lst.filter(x => x.t.turno === turno).map(x =>
+        '<button class="slot ' + (x.livre ? "livre" : "off") + '" data-act="' + (x.livre ? "pedir" : x.cls === "curto" ? "encaixe" : "porque") + '" data-k="' + x.t.k + '">'
+        + '<span class="h">' + x.t.ini + " às " + x.t.fim + "</span>"
+        + (x.livre ? '<span class="pill ok">Livre · tocar para pedir</span>'
+          : x.cls === "curto" ? '<span class="pill warn">⚡ Pedir encaixe</span>'
+            : '<span class="pill pend">Indisponível</span>')
+        + (x.txt ? '<span class="why">' + esc(x.txt) + "</span>" : '<span class="why">Vistoria de 1 h 15. Toque para pedir este horário ao ' + esc(inst.nome) + ".</span>")
+        + "</button>").join("");
+    detalhe = '<div class="sep"></div><h2 class="q">' + fw(S.dia) + "</h2>" + aviso
+      + '<div class="slots">' + bloco("manha") + bloco("tarde") + "</div>";
+  }
+
+  return guia("Escolher o dia e o horário",
+    "Toque num <b>dia verde</b> e depois no horário. Dias cinza têm o motivo explicado ao toque.",
+    "o " + esc(inst.nome) + " recebe o pedido e confirma. Você acompanha nesta tela.")
+    + '<div class="card" style="margin-bottom:12px"><strong>' + esc(inst.nome) + "</strong>"
+    + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">Recebe vistorias em ' + esc(livresNaJanela || inst.dispTexto) + ". "
+    + (totalLivre ? "<b>" + totalLivre + " tempo(s) livre(s)</b> neste mês." : "Nenhum tempo livre neste mês: veja os outros meses.") + "</p>"
+    + '<button class="btn sm" data-act="go" data-i="1" style="margin-top:10px">Trocar de instrutor</button></div>'
+    + '<div class="mtabs" role="group">' + meses.map(m =>
+      '<button data-act="mes" data-v="' + m.ym + '" aria-pressed="' + (S.mes === m.ym) + '">' + m.curto + "</button>").join("") + "</div>"
+    + '<div class="wk">' + WD_CURTO.map((w, i) => '<span>' + w + "</span>").join("") + "</div>"
+    + '<div class="grid">' + cel.join("") + "</div>"
+    + '<div class="legend">'
+    + '<span><i style="background:var(--ok-soft);border-color:var(--ok)"></i> livre</span>'
+    + '<span><i style="background:var(--warn-soft);border-color:var(--warn)"></i> só com encaixe</span>'
+    + '<span><i style="background:var(--pend-soft)"></i> cheio</span>'
+    + '<span><i style="background:var(--surface-2)"></i> sem vistoria</span>'
+    + '<span><i style="background:var(--ok);border-radius:50%;width:8px;height:8px"></i> prazo ideal (2 a 3 dias antes da viagem)</span>'
+    + "</div>" + detalhe
+    + nav(4, null, "");
+}
+
+function nav(voltar, proximo, rotulo) {
+  const b = voltar !== null && voltar !== undefined
+    ? '<button class="btn" data-act="go" data-i="' + voltar + '">Voltar</button>' : "";
+  const p = rotulo
+    ? '<button class="btn pri" data-act="go" data-i="' + (proximo === null ? "" : proximo) + '"' + (proximo === null ? " disabled" : "") + ">" + esc(rotulo) + "</button>"
+    : "";
+  if (!b && !p) return "";
+  return '<div class="navbar"><div class="navbar-in">' + b + p + "</div></div>";
+}
+
+/* --- tela de acompanhamento do aluno --- */
+function renderStatus() {
+  const a = S.meu, t = tempoDe(a.tempo) || { ini: "", fim: "" };
+  const faltamCheck = CHECK.filter(c => !S.checklist[c.k]);
+  const dias = difDias(S.est.hoje, a.data);
+  const diasViagem = a.viagem ? difDias(S.est.hoje, a.viagem) : null;
+
+  const cab = {
+    solicitado: ["warnb", "⏳ Aguardando confirmação", "O " + a.instrutor + " recebeu o seu pedido. Enquanto ele não confirmar, o horário fica reservado para você."],
+    encaixe: ["warnb", "⚡ Encaixe em análise", "Você pediu um horário com menos de 72 h. O " + a.instrutor + " vai decidir se aprova."],
+    confirmado: ["okb", "✅ Vistoria CONFIRMADA", "Está marcado. Compareça no dia e na hora, pessoalmente e sozinho."],
+    recusado: ["badb", "❌ Pedido recusado", "O " + a.instrutor + " não pôde atender nesse horário." + (a.motivo ? " Motivo: " + a.motivo : "") + (a.sugestao ? " Sugestão dele: " + a.sugestao : "")],
+    pendencias: ["badb", "⚠️ Vistoria com pendências", "A chave não foi recebida. Corrija os itens abaixo e marque uma nova vistoria."],
+    entregue: ["okb", "🎉 Chaves recebidas", "PNR entregue e processo encerrado. Bom trabalho e boa viagem."]
+  }[a.situacao] || ["", a.situacao, ""];
+
+  let acoes = "";
+  if (a.situacao === "confirmado" || a.situacao === "solicitado" || a.situacao === "encaixe") {
+    acoes = '<div class="row-btns" style="margin-top:12px">'
+      + '<button class="btn pri" data-act="ics">📅 Pôr na agenda do celular</button>'
+      + '<button class="btn danger" data-act="cancelar">Cancelar</button></div>';
+  } else if (a.situacao === "pendencias" || a.situacao === "recusado") {
+    acoes = '<div class="row-btns" style="margin-top:12px">'
+      + '<button class="btn pri big" data-act="remarcar">' + (a.situacao === "pendencias" ? "Já corrigi, marcar nova vistoria" : "Escolher outro horário") + "</button></div>";
+  }
+
+  const leve = a.situacao === "confirmado" ? '<div class="leve"><b>No dia, leve e faça:</b><ul>'
+    + "<li><b>Todas as chaves e cópias</b>, controles de portão e do ar-condicionado</li>"
+    + "<li><b>Comprovantes da Light e da Naturgy</b>, com a conta encerrada e quitada</li>"
+    + "<li>Cópia do <b>Termo de Recebimento</b> do PNR</li>"
+    + "<li>Compareça <b>pessoalmente</b> e <b>sozinho</b>: a família não acompanha</li>"
+    + "<li>Ligue o <b>ar-condicionado</b> antes, para confirmar que está gelando</li>"
+    + "</ul></div>" : "";
+
+  const pend = (a.pendencias && a.pendencias.length)
+    ? '<div class="alerta b" style="margin-top:12px"><b>Corrija estes itens antes da nova vistoria</b><span><ul style="margin:4px 0 0;padding-left:20px">'
+    + a.pendencias.map(p => "<li>" + esc(p) + "</li>").join("") + "</ul></span></div>" : "";
+
+  const alertaCheck = (a.situacao === "confirmado" && faltamCheck.length)
+    ? '<div class="alerta w" style="margin-top:12px"><b>' + faltamCheck.length + " item(ns) do checklist ainda sem marcar</b><span><ul style=\"margin:4px 0 0;padding-left:20px\">"
+    + faltamCheck.slice(0, 5).map(c => "<li>" + esc(c.t) + "</li>").join("")
+    + "</ul>Se não estiver pronto no dia, a chave não é recebida.</span>"
+    + '<button class="btn sm" data-act="verCheck">Abrir o checklist</button></div>' : "";
+
+  const conta = (a.situacao === "confirmado" && dias >= 0) ? '<div class="countdown">'
+    + "<div><b>" + dias + "</b><span>dias para a vistoria</span></div>"
+    + (diasViagem !== null ? "<div><b>" + diasViagem + "</b><span>dias para a viagem</span></div>" : "")
+    + "<div><b>" + faltamCheck.length + "</b><span>itens a concluir</span></div></div>" : "";
+
+  return guia("Seu agendamento",
+    "Esta é a sua tela de acompanhamento. Guarde o link: é por aqui que você vê a resposta do instrutor.",
+    "")
+    + '<div class="next ' + cab[0] + '">'
+    + '<div class="big">' + cab[1] + "</div>"
+    + '<div class="when">' + fw(a.data) + " · " + t.ini + " às " + t.fim + "</div>"
+    + "<p style=\"margin:6px 0 0;color:var(--muted)\">" + esc(cab[2]) + "</p>"
+    + "<dl><dt>Instrutor</dt><dd>" + esc(a.instrutor) + "</dd>"
+    + "<dt>Aluno</dt><dd>" + esc(a.nomeGuerra) + "</dd>"
+    + (a.endereco ? "<dt>PNR</dt><dd>" + esc(a.endereco) + "</dd>" : "")
+    + (a.viagem ? "<dt>Sua viagem</dt><dd>" + f3(a.viagem) + "</dd>" : "")
+    + "</dl>" + conta + leve + pend + alertaCheck + acoes
+    + "</div>"
+    + '<div class="row-btns" style="margin-top:14px">'
+    + '<button class="btn" data-act="ajuda">Dúvidas frequentes</button>'
+    + '<button class="btn" data-act="zap">💬 Falar com o instrutor</button>'
+    + '<button class="btn" data-act="recarregar">Atualizar</button></div>';
+}
+
+/* ===================== render: instrutor ===================== */
+
+function renderInstrutor() {
+  const ags = S.est.agendamentos || [];
+  const pend = ags.filter(a => a.situacao === "solicitado" || a.situacao === "encaixe")
+    .sort((a, b) => (a.situacao === "encaixe" ? -1 : 1) - (b.situacao === "encaixe" ? -1 : 1) || (a.criadoEm > b.criadoEm ? 1 : -1));
+  const conf = ags.filter(a => a.situacao === "confirmado").sort((a, b) => a.data + a.tempo > b.data + b.tempo ? 1 : -1);
+  const inst = instDe(S.eu) || { total: 0, dispTexto: "", janelas: [] };
+  const feitos = ags.filter(a => a.situacao === "entregue").length;
+  const comPend = ags.filter(a => a.situacao === "pendencias").length;
+
+  const primeiroAcesso = !localStorage.getItem("pnr-inst-ok");
+  if (primeiroAcesso) return '<div class="dash"><div class="sec full">' + renderOnboardingInstrutor(inst) + "</div></div>";
+
+  const hojeL = conf.filter(a => a.data === S.est.hoje);
+  const ultimoDia = inst.janelas.length ? inst.janelas[inst.janelas.length - 1].fim : S.est.cfg.fim;
+  const diasRest = difDias(S.est.hoje, ultimoDia);
+  const faltam = Math.max(0, (inst.total || 0) - (feitos + conf.length + pend.length));
+
+  const topo = '<div class="sec full">' + guia(S.abaInst === "pedidos" ? "Pedidos aguardando o senhor"
+    : S.abaInst === "hoje" ? "Vistorias de hoje" : S.abaInst === "agenda" ? "Sua agenda completa" : "Ferramentas",
+    S.abaInst === "pedidos" ? "Confirme ou recuse cada pedido. Os marcados com <b>⚡</b> são encaixes, com menos de 72 h."
+      : S.abaInst === "hoje" ? "Em ordem de horário, com endereço e roteiro de vistoria."
+        : S.abaInst === "agenda" ? "Tudo o que está marcado, e o resultado do que já foi vistoriado."
+          : "Agendar por um aluno, liberar exceção, bloquear horário e cadastrar o seu e-mail.",
+    S.abaInst === "pedidos" ? "o aluno vê a sua resposta na tela dele, na hora." : "")
+    + '<div class="kpis">'
+    + '<div class="kpi warn"><div class="v">' + pend.length + '</div><div class="l">pedidos aguardando</div></div>'
+    + '<div class="kpi"><div class="v">' + conf.length + '</div><div class="l">confirmadas</div></div>'
+    + '<div class="kpi ok"><div class="v">' + feitos + "/" + (inst.total || 0) + '</div><div class="l">chaves recebidas</div></div>'
+    + '<div class="kpi bad"><div class="v">' + comPend + '</div><div class="l">com pendências</div></div>'
+    + "</div>"
+    + (diasRest >= 0 && diasRest <= 10 && faltam > 0
+      ? '<div class="alerta w" style="margin-top:12px"><b>Sua disponibilidade termina em ' + diasRest + " dia(s), em " + f3(ultimoDia) + "</b>"
+      + "<span>Pelo total da escala, cerca de <b>" + faltam + " aluno(s)</b> seus ainda não agendaram. Cobre a turma: sem agendamento, eles ficam sem instrutor.</span></div>"
+      : "")
+    + "</div>";
+
+  let corpo = "";
+  if (S.abaInst === "pedidos") {
+    corpo = '<div class="sec full"><div class="sec-h"><h2>Pedidos</h2><p>' + pend.length + " aguardando</p></div>"
+      + (pend.length ? '<div class="stack">' + pend.map(cardPedido).join("") + "</div>"
+        : '<p class="empty">Nenhum pedido aguardando. Quando um aluno solicitar, aparece aqui e o senhor recebe um e-mail, se tiver cadastrado.</p>')
+      + "</div>";
+  } else if (S.abaInst === "hoje") {
+    corpo = '<div class="sec full"><div class="sec-h"><h2>Hoje · ' + f3(S.est.hoje) + "</h2><p>" + hojeL.length + " vistoria(s)</p></div>"
+      + (hojeL.length ? '<div class="stack">' + hojeL.map(a => cardVistoria(a, true)).join("") + "</div>"
+        : '<p class="empty">Nada marcado para hoje.</p>')
+      + "</div>";
+  } else if (S.abaInst === "agenda") {
+    const prox = conf.filter(a => a.data >= S.est.hoje);
+    const hist = ags.filter(a => ["entregue", "pendencias", "recusado", "cancelado"].includes(a.situacao))
+      .sort((a, b) => (b.atualizadoEm || "") > (a.atualizadoEm || "") ? 1 : -1);
+    corpo = '<div class="sec full"><div class="sec-h"><h2>Próximas vistorias</h2><p>' + prox.length + "</p></div>"
+      + (prox.length ? '<div class="stack">' + prox.map(a => cardVistoria(a, false)).join("") + "</div>" : '<p class="empty">Nenhuma vistoria marcada.</p>')
+      + "</div>"
+      + '<div class="sec full"><div class="sec-h"><h2>Já resolvidas</h2><p>' + hist.length + "</p></div>"
+      + (hist.length ? '<ul class="evl">' + hist.map(a =>
+        "<li><b>" + esc(a.nomeGuerra) + "</b> · " + f3(a.data) + " · " + situacaoTxt(a.situacao)
+        + (a.pendencias && a.pendencias.length ? "<small>Pendências: " + esc(a.pendencias.join("; ")) + "</small>" : "")
+        + "</li>").join("") + "</ul>" : '<p class="empty">Nada ainda.</p>')
+      + "</div>";
+  } else {
+    corpo = renderFerramentas(inst);
+  }
+  return '<div class="dash">' + erroBox() + topo + corpo + "</div>";
+}
+
+function renderOnboardingInstrutor(inst) {
+  return guia("Bem-vindo, " + S.eu, "Três telas rápidas sobre como o sistema funciona para o senhor.", "")
+    + '<div class="stack">'
+    + '<div class="card"><strong>1. O que o senhor faz aqui</strong><p style="margin:4px 0 0;color:var(--muted)">Os seus alunos pedem horários pelo link que a coordenação mandou. O senhor <b>confirma ou recusa</b> cada pedido, e depois registra o resultado da vistoria.</p></div>'
+    + '<div class="card"><strong>2. Sua disponibilidade</strong><p style="margin:4px 0 0;color:var(--muted)">O sistema só oferece aos alunos os dias em que o senhor recebe vistorias: <b>' + esc(inst.dispTexto || "período completo") + "</b>. O senhor tem <b>" + (inst.total || 0) + " alunos</b> na escala. Se a disponibilidade estiver errada, avise a coordenação.</p></div>"
+    + '<div class="card"><strong>3. Lembretes</strong><p style="margin:4px 0 0;color:var(--muted)">Se o senhor cadastrar um e-mail em <b>Ferramentas</b>, recebe um aviso a cada pedido novo, o convite para pôr a vistoria na agenda do celular, e um resumo às 18 h da véspera e às 7 h do dia.</p></div>'
+    + '<div class="card"><strong>Regras que o sistema já aplica sozinho</strong><ul style="margin:6px 0 0;padding-left:20px;color:var(--muted)"><li>Fins de semana, 02/11, 20/11, 25/12 e a tarde de 24/12 ficam bloqueados.</li><li>O aluno não consegue marcar no dia da viagem dele.</li><li>Abaixo de 72 h, só com o seu aval, pelo pedido de encaixe.</li><li>Nada é oferecido fora da sua disponibilidade.</li></ul></div>'
+    + "</div>"
+    + '<button class="btn pri big" data-act="instOk" style="margin-top:14px">Entendi, abrir meus pedidos</button>';
+}
+
+function situacaoTxt(s) {
+  return ({ solicitado: "Aguardando", encaixe: "⚡ Encaixe", confirmado: "Confirmada", recusado: "Recusada", cancelado: "Cancelada", entregue: "✅ Chaves recebidas", pendencias: "⚠️ Com pendências" })[s] || s;
+}
+
+function cardPedido(a) {
+  const t = tempoDe(a.tempo) || {};
+  const urg = a.situacao === "encaixe";
+  const horas = Math.round((new Date(a.criadoEm || Date.now()).getTime() - Date.now()) / -36e5);
+  const diasViagem = a.viagem ? difDias(a.data, a.viagem) : null;
+  return '<div class="ped' + (urg ? " urg" : "") + '">'
+    + "<h3>" + (urg ? "⚡ ENCAIXE · " : "") + esc(a.nomeGuerra) + "</h3>"
+    + '<div class="todo">' + (urg
+      ? "O aluno pede um horário com menos de 72 h. Aprove só se o senhor puder atender."
+      : "Confirme ou recuse. Enquanto o senhor não responder, o horário fica reservado.") + "</div>"
+    + "<dl><dt>Quando</dt><dd><b>" + fw(a.data) + " · " + t.ini + " às " + t.fim + "</b></dd>"
+    + "<dt>PNR</dt><dd>" + esc(a.endereco || "não informado") + "</dd>"
+    + (a.viagem ? "<dt>Viagem</dt><dd>" + f3(a.viagem) + (diasViagem !== null ? " · " + (diasViagem <= 0 ? "⚠️ mesmo dia ou depois" : diasViagem === 1 ? "⚠️ só 1 dia de folga" : diasViagem + " dias de folga") : "") + "</dd>" : "")
+    + (a.novaOM ? "<dt>Nova OM</dt><dd>" + esc(a.novaOM) + "</dd>" : "")
+    + (a.telefone ? "<dt>WhatsApp</dt><dd>" + esc(a.telefone) + "</dd>" : "")
+    + (a.justificativa ? "<dt>Justificativa</dt><dd>" + esc(a.justificativa) + "</dd>" : "")
+    + "<dt>Pedido há</dt><dd>" + (horas < 1 ? "menos de 1 h" : horas + " h") + "</dd>"
+    + "</dl>"
+    + checklistAluno(a)
+    + '<div class="acts">'
+    + '<button class="btn pri" data-act="confirmar" data-id="' + a.id + '">✅ Confirmar ' + f2(a.data) + " " + t.ini + "</button>"
+    + '<button class="btn" data-act="recusar" data-id="' + a.id + '">Recusar / propor outro</button>'
+    + '<button class="btn" data-act="transferir" data-id="' + a.id + '">Não é meu aluno</button>'
+    + "</div></div>";
+}
+
+function checklistAluno(a) {
+  const c = a.checklist || {};
+  const faltam = CHECK.filter(x => !c[x.k]);
+  if (!Object.keys(c).length) return "";
+  if (!faltam.length) return '<div class="todo" style="background:var(--ok-soft)">O aluno marcou todos os itens do checklist como prontos.</div>';
+  return '<div class="todo" style="background:var(--warn-soft)">O aluno ainda não marcou: ' + esc(faltam.map(x => x.t.toLowerCase()).join(", ")) + ".</div>";
+}
+
+function cardVistoria(a, hoje) {
+  const t = tempoDe(a.tempo) || {};
+  const mapa = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(a.endereco || "");
+  return '<div class="ped">'
+    + "<h3>" + t.ini + " às " + t.fim + " · " + esc(a.nomeGuerra) + "</h3>"
+    + "<dl><dt>Data</dt><dd>" + fw(a.data) + "</dd>"
+    + "<dt>PNR</dt><dd>" + esc(a.endereco || "não informado") + "</dd>"
+    + (a.viagem ? "<dt>Viagem do aluno</dt><dd>" + f3(a.viagem) + "</dd>" : "")
+    + (a.telefone ? "<dt>WhatsApp</dt><dd>" + esc(a.telefone) + "</dd>" : "")
+    + "</dl>" + checklistAluno(a)
+    + '<div class="acts">'
+    + '<button class="btn pri" data-act="roteiro" data-id="' + a.id + '">Fazer a vistoria (roteiro)</button>'
+    + (a.endereco ? '<a class="btn" href="' + esc(mapa) + '" target="_blank" rel="noopener">Ver no mapa</a>' : "")
+    + (a.telefone ? '<a class="btn" href="https://wa.me/55' + esc(String(a.telefone).replace(/\D/g, "")) + '" target="_blank" rel="noopener">💬 WhatsApp</a>' : "")
+    + '<button class="btn" data-act="recusar" data-id="' + a.id + '">Cancelar vistoria</button>'
+    + "</div></div>";
+}
+
+function renderFerramentas(inst) {
+  const insts = S.est.instrutores || [];
+  const bls = (S.est.bloqueios || []).filter(b => b.instrutor === S.eu).sort((a, b) => a.data > b.data ? 1 : -1);
+  return '<div class="sec full"><div class="sec-h"><h2>Aluno esqueceu de agendar?</h2><p>Duas formas de resolver</p></div>'
+    + '<div class="stack">'
+    + '<div class="card"><strong>1. Marcar eu mesmo pelo aluno</strong>'
+    + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">Para quem ligou ou falou pessoalmente. Já sai confirmado, sem a regra das 72 h.</p>'
+    + '<button class="btn pri" data-act="agendarPor" style="margin-top:10px">Marcar por um aluno</button></div>'
+    + '<div class="card"><strong>2. Liberar o aluno da regra das 72 h</strong>'
+    + '<p style="margin:4px 0 0;color:var(--muted);font-size:14px">O aluno escolhe sozinho o horário que precisa, por alguns dias.</p>'
+    + '<button class="btn" data-act="excecao" style="margin-top:10px">Liberar exceção</button></div>'
+    + "</div></div>"
+    + '<div class="sec full"><div class="sec-h"><h2>Bloquear horário</h2><p>Serviço, missão, compromisso</p></div>'
+    + "<p class=\"hint\">O que o senhor bloquear deixa de aparecer para os alunos. Dias com vistoria marcada não podem ser bloqueados: recuse ou remarque antes.</p>"
+    + '<button class="btn pri" data-act="bloquear">Bloquear um dia ou um tempo</button>'
+    + (bls.length ? '<div class="sep"></div><ul class="evl">' + bls.map(b =>
+      "<li>" + f3(b.data) + " · " + (b.tempo === "TODOS" ? "dia inteiro" : b.tempo) + (b.motivo ? " · " + esc(b.motivo) : "")
+      + ' <button class="btn sm" data-act="desbloquear" data-d="' + b.data + '" data-k="' + b.tempo + '">Liberar</button></li>').join("") + "</ul>" : "")
+    + "</div>"
+    + '<div class="sec full"><div class="sec-h"><h2>Seu e-mail para lembretes</h2><p>' + (inst.temEmail ? "cadastrado" : "não cadastrado") + "</p></div>"
+    + '<p class="hint">Com e-mail cadastrado o senhor recebe: aviso de pedido novo, o convite para pôr a vistoria na agenda do celular, e o resumo às 18 h da véspera e às 7 h do dia.</p>'
+    + '<div class="field" style="margin-top:0"><label for="eminst">E-mail</label>'
+    + '<input id="eminst" type="email" placeholder="nome@exemplo.com"></div>'
+    + '<button class="btn pri" data-act="salvarEmail" style="margin-top:10px">Salvar e-mail</button>'
+    + "</div>";
+}
+
+/* ===================== render: painel ===================== */
+
+function renderPainel() {
+  const ags = S.est.agendamentos || [];
+  const insts = S.est.instrutores || [];
+  const totalAlunos = insts.reduce((s, i) => s + (i.total || 0), 0);
+  const pend = ags.filter(a => a.situacao === "solicitado" || a.situacao === "encaixe");
+  const conf = ags.filter(a => a.situacao === "confirmado");
+  const feitos = ags.filter(a => a.situacao === "entregue");
+  const comPend = ags.filter(a => a.situacao === "pendencias");
+  const vivosPorNome = {};
+  ags.forEach(a => { if (["solicitado", "encaixe", "confirmado", "entregue", "pendencias"].includes(a.situacao)) vivosPorNome[normNome(a.nomeGuerra)] = a; });
+  const engajados = Object.keys(vivosPorNome).length;
+  const semAgendar = Math.max(0, totalAlunos - engajados);
+
+  // Por instrutor: quantos agendaram, dias restantes e risco.
+  const linhas = insts.map(i => {
+    const meus = ags.filter(a => a.instrutor === i.nome && ["solicitado", "encaixe", "confirmado", "entregue", "pendencias"].includes(a.situacao));
+    const ult = i.janelas && i.janelas.length ? i.janelas[i.janelas.length - 1].fim : S.est.cfg.fim;
+    const rest = difDias(S.est.hoje, ult);
+    const faltam = Math.max(0, (i.total || 0) - meus.length);
+    const risco = faltam > 0 && rest >= 0 ? Math.round(faltam / Math.max(1, rest + 1) * 10) / 10 : 0;
+    return { i, n: meus.length, faltam, ult, rest, risco, entregues: meus.filter(a => a.situacao === "entregue").length };
+  }).sort((a, b) => b.risco - a.risco || a.rest - b.rest);
+
+  const emRisco = linhas.filter(l => l.faltam > 0 && l.rest >= 0 && (l.rest <= 10 || l.risco >= 1.5));
+
+  const pendAntigos = pend.filter(a => (Date.now() - new Date(a.criadoEm || Date.now()).getTime()) > 24 * 36e5);
+
+  const dias = {};
+  conf.concat(feitos).forEach(a => { dias[a.data] = (dias[a.data] || 0) + 1; });
+  const maxDia = Math.max(1, ...Object.values(dias));
+
+  const mesesL = mesesDaCampanha();
+  if (!S.mes || !mesesL.some(m => m.ym === S.mes)) S.mes = mesesL[0] ? mesesL[0].ym : null;
+  const diasMes = S.mes ? diasDoMes(S.mes) : [];
+  const primeiro = diasMes.length ? wd(diasMes[0]) : 0;
+  const heatCels = [];
+  for (let k = 0; k < primeiro; k++) heatCels.push("<div style=\"background:transparent;border:0\"></div>");
+  diasMes.forEach(d => {
+    const n = dias[d] || 0;
+    const h = Math.round(n / maxDia * 85);
+    heatCels.push('<div style="--h:' + h + '%"' + (h > 55 ? ' class="hot"' : "") + ">"
+      + (+d.slice(8, 10)) + (n ? "<b>" + n + "</b>" : "") + "</div>");
+  });
+
+  return '<div class="dash">' + erroBox()
+    + '<div class="sec full">' + guia("Painel da coordenação",
+      "Acompanhe a campanha e cobre quem está atrasado. Cada alerta já vem com o que fazer.",
+      "")
+    + '<div class="kpis">'
+    + '<div class="kpi"><div class="v">' + totalAlunos + '</div><div class="l">alunos na escala</div></div>'
+    + '<div class="kpi bad"><div class="v">' + semAgendar + '</div><div class="l">ainda sem agendar</div></div>'
+    + '<div class="kpi warn"><div class="v">' + pend.length + '</div><div class="l">pedidos aguardando instrutor</div></div>'
+    + '<div class="kpi ok"><div class="v">' + feitos.length + '</div><div class="l">chaves recebidas</div></div>'
+    + "</div>"
+    + '<div class="kpis" style="margin-top:8px">'
+    + '<div class="kpi"><div class="v">' + conf.length + '</div><div class="l">vistorias confirmadas</div></div>'
+    + '<div class="kpi bad"><div class="v">' + comPend.length + '</div><div class="l">com pendências a corrigir</div></div>'
+    + '<div class="kpi warn"><div class="v">' + pendAntigos.length + '</div><div class="l">pedidos há mais de 24 h</div></div>'
+    + '<div class="kpi pend"><div class="v">' + Math.round(feitos.length / Math.max(1, totalAlunos) * 100) + '%</div><div class="l">da campanha concluída</div></div>'
+    + "</div></div>"
+
+    + '<div class="sec full"><div class="sec-h"><h2>O que precisa de ação agora</h2></div>'
+    + (emRisco.length || pendAntigos.length
+      ? emRisco.map(l =>
+        '<div class="alerta ' + (l.rest <= 5 ? "b" : "w") + '"><b>' + esc(l.i.nome) + ": disponibilidade termina em " + l.rest + " dia(s), em " + f3(l.ult) + "</b>"
+        + "<span>" + l.faltam + " de " + l.i.total + " alunos dele ainda não agendaram. Cobre a turma hoje; depois dessa data ele não recebe mais vistorias.</span>"
+        + '<div class="row-btns"><button class="btn sm" data-act="cobrar" data-n="' + esc(l.i.nome) + '">Mensagem pronta para cobrar</button></div></div>').join("")
+        + (pendAntigos.length ? '<div class="alerta w"><b>' + pendAntigos.length + " pedido(s) sem resposta há mais de 24 h</b><span>"
+          + esc(pendAntigos.map(a => a.nomeGuerra + " → " + a.instrutor).join("; ")) + ". Avise os instrutores.</span></div>" : "")
+      : '<p class="empty">Nada urgente. Todos os instrutores estão com folga de prazo e os pedidos estão sendo respondidos.</p>')
+    + "</div>"
+
+    + '<div class="sec full"><div class="sec-h"><h2>Por instrutor</h2><p>Agendados sobre o total da escala</p></div>'
+    + '<table class="tbl"><thead><tr><th>Instrutor</th><th class="num">Agendados</th><th>Progresso</th><th class="num">Entregues</th><th>Disponível até</th><th class="num">Dias</th></tr></thead><tbody>'
+    + linhas.map(l => "<tr><td><b>" + esc(l.i.nome) + "</b><br><small style=\"color:var(--muted)\">" + esc(l.i.dispTexto) + "</small></td>"
+      + '<td class="num">' + l.n + "/" + l.i.total + "</td>"
+      + '<td><div class="bar2"><i style="width:' + Math.round(l.n / Math.max(1, l.i.total) * 100) + '%"></i></div></td>'
+      + '<td class="num">' + l.entregues + "</td>"
+      + "<td>" + f3(l.ult) + "</td>"
+      + '<td class="num">' + (l.rest < 0 ? "encerrado" : l.rest) + "</td></tr>").join("")
+    + "</tbody></table></div>"
+
+    + '<div class="sec"><div class="sec-h"><h2>Ocupação por dia</h2><p>Vistorias marcadas e realizadas</p></div>'
+    + '<div class="mtabs" role="group">' + mesesL.map(m =>
+      '<button data-act="mes" data-v="' + m.ym + '" aria-pressed="' + (S.mes === m.ym) + '">' + m.curto + "</button>").join("") + "</div>"
+    + '<div class="wk" style="margin-top:10px">' + WD_CURTO.map(w => "<span>" + w + "</span>").join("") + "</div>"
+    + '<div class="heat">' + heatCels.join("") + "</div>"
+    + '<p class="hint" style="margin-top:10px">Cada dia tem 6 tempos por instrutor: 3 de manhã e 3 de tarde.</p></div>'
+
+    + '<div class="sec"><div class="sec-h"><h2>Últimos movimentos</h2></div>'
+    + (ags.length ? '<ul class="evl">' + ags.slice().sort((a, b) => (b.atualizadoEm || "") > (a.atualizadoEm || "") ? 1 : -1).slice(0, 14).map(a =>
+      "<li><b>" + esc(a.nomeGuerra) + "</b> · " + esc(a.instrutor) + " · " + f3(a.data)
+      + "<small>" + situacaoTxt(a.situacao) + (a.pendencias && a.pendencias.length ? " · " + esc(a.pendencias.join("; ")) : "") + "</small></li>").join("") + "</ul>"
+      : '<p class="empty">Nenhum agendamento ainda.</p>')
+    + "</div></div>";
+}
+
+/* ===================== modais ===================== */
+
+const layer = document.getElementById("layer");
+function fecharModal() { layer.innerHTML = ""; }
+function modal(titulo, corpo, acoes) {
+  layer.innerHTML = '<div class="modal" data-act="fundo"><div class="card" role="dialog" aria-modal="true" aria-label="' + esc(titulo) + '">'
+    + "<h2>" + esc(titulo) + "</h2>" + corpo
+    + '<div class="row-btns" style="margin-top:14px">' + acoes + '<button class="btn" data-act="fechar">Fechar</button></div>'
+    + "</div></div>";
+}
+
+function modalAjuda() {
+  const ondeEstou = S.view === "painel" ? "Painel da coordenação" : S.view === "instrutor" ? "Tela do instrutor" : STEPS[S.step] || "Seu agendamento";
+  modal("Ajuda · " + ondeEstou,
+    '<p class="hint">Dúvidas mais comuns. Se a sua não estiver aqui, fale com o seu instrutor.</p>'
+    + '<div class="faq">' + FAQ.map(([q, a]) => "<details><summary>" + esc(q) + "</summary><p>" + esc(a) + "</p></details>").join("") + "</div>"
+    + '<div class="sep"></div><p style="font-size:14px"><b>Resumo das regras:</b> vistoria de 1 h 15, em 6 tempos por dia (08h00, 09h30 e 11h00; 13h30, 15h00 e 16h30). Sem vistoria em fins de semana, em 02/11, 20/11 e 25/12, nem na tarde de 24/12. Antecedência mínima de 72 h, que o instrutor pode flexibilizar. Nunca no dia da viagem.</p>',
+    "");
+}
+
+function modalPorque(txt) {
+  modal("Esse horário não está disponível", '<p>' + esc(txt) + "</p>"
+    + '<p class="hint" style="margin-top:10px">Escolha um horário verde no mesmo dia, ou toque em outro dia do calendário.</p>', "");
+}
+
+function modalEncaixe(k) {
+  const t = tempoDe(k) || {};
+  modal("Pedir encaixe ao " + S.dados.instrutor,
+    '<div class="alerta w"><b>Faltam menos de 72 h para ' + f3(S.dia) + " às " + t.ini + "</b>"
+    + "<span>Normalmente o agendamento exige 72 h. Explique abaixo por que o senhor precisa deste horário. O instrutor decide se aprova.</span></div>"
+    + '<div class="field" style="margin-top:0"><label for="just">Justificativa</label>'
+    + "<small>Seja direto: data do voo, apresentação na nova OM, motivo do atraso.</small>"
+    + '<textarea id="just" placeholder="Ex.: embarco dia 12 e só recebi a passagem ontem."></textarea></div>',
+    '<button class="btn pri" data-act="enviarEncaixe" data-k="' + k + '">Enviar pedido de encaixe</button>');
+}
+
+function modalConfirmarPedido(k) {
+  const t = tempoDe(k) || {};
+  const d = S.dados;
+  const dias = d.viagem ? difDias(S.dia, d.viagem) : null;
+  modal("Confirme o seu pedido",
+    '<div class="next"><div class="when">' + fw(S.dia) + " · " + t.ini + " às " + t.fim + "</div>"
+    + "<dl><dt>Instrutor</dt><dd>" + esc(d.instrutor) + "</dd>"
+    + "<dt>Aluno</dt><dd>" + esc(d.nomeGuerra) + "</dd>"
+    + "<dt>PNR</dt><dd>" + esc(d.endereco) + "</dd>"
+    + "<dt>Sua viagem</dt><dd>" + f3(d.viagem) + (dias !== null ? " · " + dias + " dia(s) de folga" : "") + "</dd></dl></div>"
+    + '<div class="leve"><b>Ao confirmar, o senhor declara que:</b><ul>'
+    + "<li>vai comparecer <b>pessoalmente</b>, sem representante;</li>"
+    + "<li>vai estar <b>sozinho</b>, sem família acompanhando;</li>"
+    + "<li>o PNR estará pintado, faxinado e tudo Em Condições De uso;</li>"
+    + "<li>levará as chaves e os comprovantes da Light e da Naturgy.</li></ul></div>",
+    '<button class="btn pri" data-act="enviarPedido" data-k="' + k + '">Pedir vistoria</button>');
+}
+
+function modalCancelar() {
+  modal("Cancelar a vistoria",
+    '<div class="alerta w"><b>Atenção</b><span>O horário será liberado para outro companheiro. Se precisar, você terá de marcar de novo, respeitando as 72 h.</span></div>'
+    + '<div class="field" style="margin-top:0"><label for="cnome">Digite o seu nome de guerra para confirmar</label>'
+    + "<small>Exatamente como no agendamento: <b>" + esc(S.meu.nomeGuerra) + "</b></small>"
+    + '<input id="cnome" type="text" autocomplete="off"></div>'
+    + '<div class="field"><label for="cmot">Motivo</label><small>Opcional, mas ajuda o instrutor.</small>'
+    + '<input id="cmot" type="text" placeholder="Ex.: mudou a data do voo"></div>',
+    '<button class="btn danger" data-act="enviarCancelar">Cancelar a vistoria</button>');
+}
+
+function modalRecusar(id) {
+  const a = (S.est.agendamentos || []).find(x => x.id === id) || {};
+  modal("Recusar ou propor outro horário",
+    "<p>Pedido de <b>" + esc(a.nomeGuerra) + "</b> para " + f3(a.data) + ".</p>"
+    + '<div class="field"><label for="rmot">Motivo</label><small>O aluno vê este texto.</small>'
+    + '<input id="rmot" type="text" placeholder="Ex.: estarei de serviço"></div>'
+    + '<div class="field"><label for="rsug">Sugestão de outro horário</label><small>Opcional. O aluno escolhe de novo no calendário.</small>'
+    + '<input id="rsug" type="text" placeholder="Ex.: dia 04/12 pela manhã"></div>',
+    '<button class="btn danger" data-act="enviarRecusar" data-id="' + id + '">Recusar</button>');
+}
+
+function modalTransferir(id) {
+  const a = (S.est.agendamentos || []).find(x => x.id === id) || {};
+  const insts = (S.est.instrutores || []).filter(i => i.nome !== S.eu);
+  modal("Transferir para o instrutor certo",
+    "<p>O <b>" + esc(a.nomeGuerra) + "</b> escolheu o senhor, mas não é seu aluno. Escolha o responsável correto; o pedido não se perde e o aluno é avisado.</p>"
+    + '<div class="field"><label for="tdest">Instrutor responsável</label><select id="tdest">'
+    + insts.map(i => '<option value="' + esc(i.nome) + '">' + esc(i.nome) + " · " + esc(i.dispTexto) + "</option>").join("")
+    + "</select></div>",
+    '<button class="btn pri" data-act="enviarTransferir" data-id="' + id + '">Transferir</button>');
+}
+
+function modalRoteiro(id) {
+  const a = (S.est.agendamentos || []).find(x => x.id === id);
+  if (!a) return;
+  S.roteiroId = id;
+  const r = S.roteiro[id] || {};
+  const marcados = ROTEIRO.filter(x => r[x.k]).length;
+  const ruins = ROTEIRO.filter(x => r[x.k] === "n");
+  modal("Roteiro de vistoria · " + a.nomeGuerra,
+    '<div class="guide"><b>Como usar</b><p>Percorra o imóvel na ordem e marque <b>✓</b> ou <b>⚠</b> em cada item. O que ficar ⚠ vai direto para o aluno como pendência a corrigir.</p></div>'
+    + "<p><b>" + marcados + " de " + ROTEIRO.length + "</b> itens avaliados"
+    + (ruins.length ? " · <b style=\"color:var(--bad)\">" + ruins.length + " com problema</b>" : "") + "</p>"
+    + '<div class="rot">' + ROTEIRO.map(x =>
+      '<div class="it"><strong>' + esc(x.t) + "</strong>"
+      + '<button class="y" data-act="rot" data-k="' + x.k + '" data-v="y" aria-pressed="' + (r[x.k] === "y") + '">✓</button>'
+      + '<button class="n" data-act="rot" data-k="' + x.k + '" data-v="n" aria-pressed="' + (r[x.k] === "n") + '">⚠</button>'
+      + "<small>" + esc(x.d) + "</small></div>").join("") + "</div>"
+    + '<div class="field"><label for="robs">Observações</label>'
+    + '<textarea id="robs" placeholder="Opcional. Detalhe o que precisa ser corrigido."></textarea></div>'
+    + (ruins.length
+      ? '<div class="alerta b"><b>Não receba a chave</b><span>Há ' + ruins.length + " item(ns) com problema. Registre as pendências: o aluno recebe a lista e marca nova vistoria.</span></div>"
+      : marcados === ROTEIRO.length
+        ? '<div class="alerta w" style="background:var(--ok-soft)"><b>Tudo em ordem</b><span>Pode receber as chaves e encerrar.</span></div>'
+        : '<div class="alerta w"><b>Faltam itens</b><span>Avalie todos antes de decidir.</span></div>'),
+    ruins.length
+      ? '<button class="btn danger" data-act="regPend" data-id="' + id + '">Registrar pendências</button>'
+      : '<button class="btn pri" data-act="regOk" data-id="' + id + '">✅ Recebi as chaves</button>');
+}
+
+function modalBloquear() {
+  modal("Bloquear um dia ou um tempo",
+    '<p class="hint">O que o senhor bloquear deixa de aparecer para os alunos.</p>'
+    + '<div class="field" style="margin-top:0"><label for="bd">Dia</label>'
+    + '<input id="bd" type="date" min="' + esc(S.est.cfg.inicio) + '" max="' + esc(S.est.cfg.fim) + '"></div>'
+    + '<div class="field"><label for="bt">O que bloquear</label><select id="bt">'
+    + '<option value="TODOS">O dia inteiro (6 tempos)</option>'
+    + tempos().map(t => '<option value="' + t.k + '">Só ' + t.ini + " às " + t.fim + "</option>").join("")
+    + "</select></div>"
+    + '<div class="field"><label for="bm">Motivo</label><small>Opcional. O aluno vê este texto ao tocar no dia.</small>'
+    + '<input id="bm" type="text" placeholder="Ex.: serviço de dia"></div>',
+    '<button class="btn pri" data-act="enviarBloqueio">Bloquear</button>');
+}
+
+function modalExcecao() {
+  modal("Liberar aluno da regra das 72 h",
+    '<p class="hint">O aluno passa a poder escolher sozinho qualquer horário livre da sua agenda, inclusive de amanhã.</p>'
+    + '<div class="field" style="margin-top:0"><label for="xn">Nome de guerra do aluno</label>'
+    + '<input id="xn" type="text" placeholder="Ex.: Souza"></div>'
+    + '<div class="field"><label for="xd">Por quantos dias</label><select id="xd">'
+    + [3, 5, 7, 10, 15].map(d => '<option value="' + d + '"' + (d === 7 ? " selected" : "") + ">" + d + " dias</option>").join("")
+    + "</select></div>",
+    '<button class="btn pri" data-act="enviarExcecao">Liberar</button>');
+}
+
+function modalAgendarPor() {
+  modal("Marcar por um aluno",
+    '<div class="alerta w"><b>Use com cuidado</b><span>A vistoria já sai <b>confirmada</b> e sem a regra das 72 h. Confirme com o aluno antes.</span></div>'
+    + '<div class="field" style="margin-top:0"><label for="an">Nome de guerra</label><input id="an" type="text" placeholder="Ex.: Souza"></div>'
+    + '<div class="field"><label for="ae">Endereço do PNR</label><input id="ae" type="text" placeholder="Bloco e apartamento"></div>'
+    + '<div class="field"><label for="ad">Dia</label><input id="ad" type="date" min="' + esc(S.est.cfg.inicio) + '" max="' + esc(S.est.cfg.fim) + '"></div>'
+    + '<div class="field"><label for="at">Tempo</label><select id="at">'
+    + tempos().map(t => '<option value="' + t.k + '">' + t.ini + " às " + t.fim + "</option>").join("") + "</select></div>"
+    + '<div class="field"><label for="av">Data da viagem do aluno</label><input id="av" type="date"></div>',
+    '<button class="btn pri" data-act="enviarAgendarPor">Marcar e confirmar</button>');
+}
+
+function modalRemarcar() {
+  const a = S.meu;
+  const inst = instDe(a.instrutor);
+  const opts = { viagem: a.viagem, id: a.id };
+  const meses = mesesDaCampanha();
+  const ym = S.mes || (meses[0] && meses[0].ym);
+  const dias = diasDoMes(ym).filter(d => resumoDia(d, a.instrutor, opts).cls === "livre");
+  modal(a.situacao === "pendencias" ? "Nova vistoria após corrigir" : "Escolher outro horário",
+    (a.situacao === "pendencias"
+      ? '<div class="alerta w"><b>Confirme antes de marcar</b><span>As pendências foram realmente corrigidas? Se o instrutor achar o mesmo problema, a chave segue retida.</span></div>'
+      : "")
+    + '<div class="field" style="margin-top:0"><label for="rn">Seu nome de guerra</label>'
+    + '<input id="rn" type="text" autocomplete="off" placeholder="' + esc(a.nomeGuerra) + '"></div>'
+    + '<div class="field"><label for="rd">Dia</label><select id="rd">'
+    + (dias.length ? dias.map(d => '<option value="' + d + '">' + fw(d) + "</option>").join("")
+      : '<option value="">Sem dia livre neste mês</option>') + "</select></div>"
+    + '<div class="field"><label for="rt">Tempo</label><select id="rt">'
+    + tempos().map(t => '<option value="' + t.k + '">' + t.ini + " às " + t.fim + "</option>").join("") + "</select>"
+    + "<small>Se o tempo escolhido estiver ocupado, o sistema avisa e você escolhe outro.</small></div>",
+    '<button class="btn pri" data-act="enviarRemarcar">Pedir nova vistoria</button>');
+}
+
+function modalCobrar(nome) {
+  const inst = instDe(nome) || {};
+  const txt = "Senhores, a disponibilidade do " + nome + " para receber PNR vai até " + f3(inst.janelas && inst.janelas.length ? inst.janelas[inst.janelas.length - 1].fim : S.est.cfg.fim)
+    + ". Quem ainda não agendou a vistoria, faça hoje pelo link. Lembrem-se: antecedência mínima de 72 h, nunca no dia do voo, entrega pessoal e sem acompanhante.";
+  modal("Mensagem pronta para cobrar",
+    '<p class="hint">Copie e mande no grupo da turma.</p>'
+    + '<div class="card" style="font-size:14px" id="msgcobrar">' + esc(txt) + "</div>",
+    '<a class="btn pri" href="https://wa.me/?text=' + encodeURIComponent(txt) + '" target="_blank" rel="noopener">Abrir no WhatsApp</a>'
+    + '<button class="btn" data-act="copiar">Copiar texto</button>');
+}
+
+/** Arquivo .ics para o aluno pôr a vistoria na agenda do celular. */
+function baixarIcs() {
+  const a = S.meu, t = tempoDe(a.tempo);
+  const z = d => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const ics = [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//EsAO//PNR//PT-BR", "BEGIN:VEVENT",
+    "UID:pnr-" + a.id + "@esao", "DTSTAMP:" + z(new Date()),
+    "DTSTART:" + z(horaDe(a.data, t.ini)), "DTEND:" + z(horaDe(a.data, t.fim)),
+    "SUMMARY:Entrega do PNR - vistoria com " + a.instrutor,
+    "LOCATION:" + String(a.endereco || "").replace(/,/g, "\\,"),
+    "DESCRIPTION:Levar TODAS as chaves e copias\\, controles\\, comprovantes da Light e da Naturgy e copia do Termo de Recebimento. Comparecer pessoalmente e sozinho.",
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Vistoria do PNR em 2 horas", "END:VALARM",
+    "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:Vistoria do PNR amanha", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR"
+  ].join("\r\n");
+  try {
+    const url = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    const link = document.createElement("a");
+    link.href = url; link.download = "vistoria-pnr.ics";
+    document.body.appendChild(link); link.click(); link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+    toast("Abra o arquivo baixado para pôr na sua agenda.");
+  } catch (e) { toast("Não foi possível gerar o arquivo neste aparelho."); }
+}
+
+/* ===================== eventos ===================== */
+
+document.addEventListener("input", e => {
+  const b = e.target.getAttribute && e.target.getAttribute("data-bind");
+  if (!b) return;
+  S.dados[b] = e.target.value;
+  salvarLocal();
+  // Não re-renderiza: isso tiraria o foco do campo. O botão atualiza ao tocar.
+  if (b === "nomeGuerra" || b === "assinatura" || b === "endereco" || b === "viagem") {
+    const nb = document.querySelector(".navbar .btn.pri");
+    if (nb) nb.disabled = !podeAvancar();
+  }
+});
+
+function podeAvancar() {
+  if (S.step === 1) return S.dados.nomeGuerra.trim().length >= 3 && !!S.dados.instrutor;
+  if (S.step === 2) return S.rolouTermo && CRITICOS.every(c => S.aceites[c.k]) && S.aceiteGeral
+    && normNome(S.dados.assinatura || "") === normNome(S.dados.nomeGuerra);
+  if (S.step === 4) return (S.dados.endereco || "").trim().length >= 8 && !!S.dados.viagem;
+  return true;
+}
+
+document.addEventListener("click", async e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.getAttribute("data-act");
+  const v = el.getAttribute("data-v"), k = el.getAttribute("data-k"), id = el.getAttribute("data-id");
+  const d = el.getAttribute("data-d"), n = el.getAttribute("data-n"), i = el.getAttribute("data-i");
+
+  // fechar modal tocando no fundo
+  if (act === "fundo") { if (e.target === el) fecharModal(); return; }
+  if (act === "fechar") { fecharModal(); return; }
+
+  switch (act) {
+    case "view": S.view = v; S.erro = ""; render(); return;
+    case "aba": S.abaInst = v; S.erro = ""; render(); return;
+    case "mes": S.mes = v; render(); return;
+    case "ajuda": modalAjuda(); return;
+    case "recarregar": await carregar(); toast("Atualizado."); return;
+    case "instOk": try { localStorage.setItem("pnr-inst-ok", "1"); } catch (x) {} render(); return;
+
+    case "step": case "go": {
+      const alvo = Number(i);
+      if (isNaN(alvo)) return;
+      if (alvo > S.step && !podeAvancar()) return;
+      if (S.step === 2 && alvo === 3) {
+        // registra o aceite no momento em que o aluno assina
+        await acao("aceitarTermos", S.dados.nomeGuerra, S.dados.instrutor,
+          CRITICOS.map(c => c.t).concat(["Termo completo"]));
+      }
+      S.step = Math.max(0, Math.min(STEPS.length - 1, alvo));
+      S.erro = ""; window.scrollTo(0, 0); render(); return;
+    }
+    case "inst": S.dados.instrutor = n; S.dia = null; salvarLocal(); render(); return;
+    case "crit": S.aceites[k] = !S.aceites[k]; salvarLocal(); render(); return;
+    case "geral": S.aceiteGeral = !S.aceiteGeral; salvarLocal(); render(); return;
+    case "check": S.checklist[k] = !S.checklist[k]; salvarLocal(); render(); return;
+    case "howto": S.abertos[k] = !S.abertos[k]; render(); return;
+    case "verCheck": S.verCheck = true; window.scrollTo(0, 0); render(); return;
+    case "voltarStatus": S.verCheck = false; window.scrollTo(0, 0); render(); return;
+    case "dia": S.dia = d; render(); return;
+    case "porque": {
+      const m = motivo(S.est, S.dados.instrutor, S.dia, k, { viagem: S.dados.viagem });
+      modalPorque(m.txt || "Horário indisponível.");
+      return;
+    }
+    case "encaixe": modalEncaixe(k); return;
+    case "pedir": modalConfirmarPedido(k); return;
+
+    case "enviarPedido": case "enviarEncaixe": {
+      const just = document.getElementById("just");
+      const r = await acao("solicitar", {
+        nomeGuerra: S.dados.nomeGuerra, instrutor: S.dados.instrutor, data: S.dia, tempo: k,
+        endereco: S.dados.endereco, viagem: S.dados.viagem, novaOM: S.dados.novaOM,
+        telefone: S.dados.telefone, email: S.dados.email, checklist: S.checklist,
+        aceitou: true, encaixe: act === "enviarEncaixe", justificativa: just ? just.value : ""
+      });
+      fecharModal();
+      if (r && r.ok) { toast(act === "enviarEncaixe" ? "Pedido de encaixe enviado." : "Pedido enviado ao instrutor."); await carregar(); window.scrollTo(0, 0); }
+      return;
+    }
+    case "cancelar": modalCancelar(); return;
+    case "enviarCancelar": {
+      const nome = document.getElementById("cnome").value;
+      const mot = document.getElementById("cmot").value;
+      const r = await acao("cancelar", S.meu.id, nome, mot);
+      if (r && r.ok) { fecharModal(); toast("Vistoria cancelada."); S.meu = null; S.step = 5; await carregar(); }
+      else if (S.erro) { fecharModal(); render(); }
+      return;
+    }
+    case "remarcar": modalRemarcar(); return;
+    case "enviarRemarcar": {
+      const nome = document.getElementById("rn").value;
+      const dia = document.getElementById("rd").value;
+      const tmp = document.getElementById("rt").value;
+      if (!dia) { toast("Escolha um dia livre."); return; }
+      const r = await acao("remarcar", S.meu.id, nome, dia, tmp);
+      if (r && r.ok) { fecharModal(); toast("Nova vistoria solicitada."); await carregar(); }
+      else if (S.erro) { fecharModal(); render(); }
+      return;
+    }
+    case "ics": baixarIcs(); return;
+    case "zap": {
+      const txt = "Senhor " + (S.meu ? S.meu.instrutor : S.dados.instrutor) + ", sou o " + (S.meu ? S.meu.nomeGuerra : S.dados.nomeGuerra)
+        + ". Falo sobre a vistoria do meu PNR" + (S.meu ? " marcada para " + f3(S.meu.data) : "") + ".";
+      window.open("https://wa.me/?text=" + encodeURIComponent(txt), "_blank");
+      return;
+    }
+
+    /* --- instrutor --- */
+    case "confirmar": {
+      const r = await acao("confirmar", S.chave, id);
+      if (r && r.ok) { toast("Confirmada. O aluno já vê na tela dele."); await carregar(); }
+      return;
+    }
+    case "recusar": modalRecusar(id); return;
+    case "enviarRecusar": {
+      const r = await acao("recusar", S.chave, id, document.getElementById("rmot").value, document.getElementById("rsug").value);
+      if (r && r.ok) { fecharModal(); toast("Recusada. O aluno foi avisado."); await carregar(); }
+      return;
+    }
+    case "transferir": modalTransferir(id); return;
+    case "enviarTransferir": {
+      const r = await acao("transferir", S.chave, id, document.getElementById("tdest").value);
+      if (r && r.ok) { fecharModal(); toast("Transferida."); await carregar(); }
+      return;
+    }
+    case "roteiro": modalRoteiro(id); return;
+    case "rot": {
+      const rid = S.roteiroId;
+      S.roteiro[rid] = S.roteiro[rid] || {};
+      S.roteiro[rid][k] = S.roteiro[rid][k] === v ? null : v;
+      const obs = document.getElementById("robs");
+      const guardado = obs ? obs.value : "";
+      modalRoteiro(rid);
+      const novo = document.getElementById("robs");
+      if (novo) novo.value = guardado;
+      return;
+    }
+    case "regOk": {
+      const obs = document.getElementById("robs");
+      const r = await acao("registrarResultado", S.chave, id, true, [], obs ? obs.value : "");
+      if (r && r.ok) { fecharModal(); toast("Chaves recebidas. Processo encerrado."); await carregar(); }
+      return;
+    }
+    case "regPend": {
+      const rid = S.roteiro[id] || {};
+      const lista = ROTEIRO.filter(x => rid[x.k] === "n").map(x => x.t);
+      const obs = document.getElementById("robs");
+      const r = await acao("registrarResultado", S.chave, id, false, lista, obs ? obs.value : "");
+      if (r && r.ok) { fecharModal(); toast("Pendências registradas. O aluno recebeu a lista."); await carregar(); }
+      return;
+    }
+    case "bloquear": modalBloquear(); return;
+    case "enviarBloqueio": {
+      const dia = document.getElementById("bd").value;
+      if (!dia) { toast("Escolha o dia."); return; }
+      const r = await acao("bloquear", S.chave, dia, document.getElementById("bt").value, document.getElementById("bm").value);
+      if (r && r.ok) { fecharModal(); toast("Horário bloqueado."); await carregar(); }
+      else if (S.erro) { fecharModal(); render(); }
+      return;
+    }
+    case "desbloquear": {
+      const r = await acao("desbloquear", S.chave, d, k);
+      if (r && r.ok) { toast("Horário liberado."); await carregar(); }
+      return;
+    }
+    case "excecao": modalExcecao(); return;
+    case "enviarExcecao": {
+      const r = await acao("liberarExcecao", S.chave, document.getElementById("xn").value, document.getElementById("xd").value);
+      if (r && r.ok) { fecharModal(); toast("Exceção liberada até " + f3(r.validaAte) + "."); await carregar(); }
+      return;
+    }
+    case "agendarPor": modalAgendarPor(); return;
+    case "enviarAgendarPor": {
+      const r = await acao("agendarPeloInstrutor", S.chave, {
+        nomeGuerra: document.getElementById("an").value,
+        endereco: document.getElementById("ae").value,
+        data: document.getElementById("ad").value,
+        tempo: document.getElementById("at").value,
+        viagem: document.getElementById("av").value
+      });
+      if (r && r.ok) { fecharModal(); toast("Vistoria marcada e confirmada."); await carregar(); }
+      else if (S.erro) { fecharModal(); render(); }
+      return;
+    }
+    case "salvarEmail": {
+      const em = document.getElementById("eminst").value;
+      const r = await acao("salvarEmail", S.chave, em);
+      if (r && r.ok) { toast("E-mail salvo. O senhor passa a receber os lembretes."); await carregar(); }
+      return;
+    }
+
+    /* --- painel --- */
+    case "cobrar": modalCobrar(n); return;
+    case "copiar": {
+      const t = document.getElementById("msgcobrar");
+      if (t) {
+        try { await navigator.clipboard.writeText(t.textContent); toast("Texto copiado."); }
+        catch (x) { toast("Selecione e copie o texto à mão."); }
+      }
+      return;
+    }
+  }
+});
+
+document.addEventListener("keydown", e => { if (e.key === "Escape") fecharModal(); });
+
+/* ===================== início ===================== */
+
+(async function () {
+  lerLocal();
+  if (window.google && google.script && google.script.run) {
+    API = gasAPI();
+    const loc = await new Promise(res => { try { google.script.url.getLocation(res); } catch (e) { res({ parameter: {} }); } });
+    const p = loc.parameter || {};
+    S.chave = p.chave || "";
+    if (p.v === "painel") S.view = "painel";
+    else if (p.v === "instrutor") S.view = "instrutor";
+    conn("", "Conectando à planilha…");
+  } else {
+    API = demoAPI();
+    banner('<b>Modo demonstração.</b> Esta cópia não está ligada à planilha: os dados ficam só neste navegador. '
+      + 'Para testar as outras telas: <button class="btn sm" data-act="demoAluno">aluno</button> '
+      + '<button class="btn sm" data-act="demoInstrutor">instrutor</button> '
+      + '<button class="btn sm" data-act="demoPainel">painel</button>', "w");
+    document.addEventListener("click", ev => {
+      const b = ev.target.closest("[data-act^=demo]");
+      if (!b) return;
+      const a = b.getAttribute("data-act");
+      if (a === "demoAluno") API.trocarPapel("aluno", "");
+      if (a === "demoInstrutor") API.trocarPapel("instrutor", "Cap Dantas");
+      if (a === "demoPainel") API.trocarPapel("painel", "");
+      S.view = ""; S.meu = null; carregar();
+    });
+  }
+  await carregar();
+  // Atualiza sozinho quando a tela volta a ficar visível (instrutor e painel).
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && S.papel !== "aluno") carregar(true); });
+  setInterval(() => { if (!document.hidden && S.papel !== "aluno") carregar(true); }, 60000);
+})();
+</script>
